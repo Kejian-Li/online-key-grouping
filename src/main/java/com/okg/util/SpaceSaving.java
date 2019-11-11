@@ -18,7 +18,7 @@ public class SpaceSaving {
     private final TreeMap<Integer, HashSet<Integer>> minSets;
 
     private int min = 1;
-    private double m = 0;
+    private double m = 0;   // number of items
 
     private static final double DEFAULT_EPSILON = 0.05;
     private static final double DEFAULT_THETA = 0.1;
@@ -111,11 +111,10 @@ public class SpaceSaving {
     }
 
     private class Elem {
-        public int count;
-        public int e;
+        private int count;
+        private int e;
 
         public Elem(int count, int e) {
-            super();
             this.count = count;
             this.e = e;
         }
@@ -127,7 +126,8 @@ public class SpaceSaving {
      * @return true if the identifier belongs to the Heavy Hitter set.
      */
     public boolean isHeavyHitter(int identifier) {
-        return l.get(identifier).count - l.get(identifier).e >= Math.ceil(phi * m);
+        Elem elem = l.get(identifier);
+        return elem.count - elem.e >= Math.ceil(phi * m);
     }
 
     /**
@@ -138,7 +138,8 @@ public class SpaceSaving {
         HashMap<Integer, Integer> res = new HashMap<Integer, Integer>();
         for (Entry<Integer, Elem> entry : l.entrySet()) {
             if (isHeavyHitter(entry.getKey())) {
-                res.put(entry.getKey(), entry.getValue().count - entry.getValue().e);
+                Elem elem = entry.getValue();
+                res.put(entry.getKey(), elem.count - elem.e);
             }
         }
         return res;

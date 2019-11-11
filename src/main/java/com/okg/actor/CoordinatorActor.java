@@ -8,7 +8,7 @@ import scala.runtime.BoxedUnit;
 
 public class CoordinatorActor extends AbstractFSM<CoordinatorState, MessageQueue> {
 
-    private static final int k = 3;
+    private static final int k = 5;
 
     {
         startWith(CoordinatorState.WAIT_ALL, null);

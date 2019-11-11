@@ -2,11 +2,11 @@ package com.okg.message;
 
 import java.util.HashMap;
 
-public class Sketch extends Entity{
+public class Sketch extends Entity {
 
-    private final HashMap<Integer, Integer> M;   // mapping from keys of heavy hitters to their frequencies
+    private final HashMap<Integer, Integer> M;   // mapping for heavy hitters
     private final static int m = 100000;
-    private final int[] A;    // array for mapping frequencies to buckets by hash function
+    private final int[] A;          // array for sparse items
 
     public Sketch() {
         this(new HashMap<>(), new int[m]);

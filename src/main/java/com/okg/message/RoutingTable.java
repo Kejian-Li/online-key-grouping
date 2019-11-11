@@ -2,15 +2,23 @@ package com.okg.message;
 
 import java.util.HashMap;
 
-public class RoutingTable extends Entity {
+/**
+ * Routing Table
+ */
+public class RoutingTable<K, V> extends Entity {
 
-    private final HashMap<Integer, Integer> routingTable;
+    private final HashMap<K, V> map;
 
-    public RoutingTable(HashMap<Integer, Integer> routingTable) {
-        this.routingTable = routingTable;
+    public RoutingTable(HashMap<K, V> map) {
+        this.map = map;
     }
 
-    public HashMap<Integer, Integer> getRoutingTable() {
-        return routingTable;
+    public boolean containsKey(int key) {
+        return map.containsKey(key);
     }
+
+    public V get(Object key) {
+        return map.get(key);
+    }
+
 }
