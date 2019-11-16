@@ -1,9 +1,7 @@
 package com.okg.message
 
-case class MigrationTable(list: List[Entry]) extends Message
+import scala.collection.mutable
 
-object MigrationTable{
-  def apply(list: List[Entry]): MigrationTable = new MigrationTable(list)
-}
+case class MigrationTable(map: mutable.Map[Int, Entry]) extends Message
 
 case class Entry(key: Int, before: Int, after: Int)

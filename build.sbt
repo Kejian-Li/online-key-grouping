@@ -9,5 +9,5 @@ libraryDependencies ++= Seq (
   "com.typesafe.akka" %% "akka-actor" % "2.5.23",
   "com.typesafe.akka" %% "akka-testkit" % "2.5.23" % "test",
   "org.scalatest" %% "scalatest" % "3.0.8" % "test",
-  "com.github.rokishopen" % "random-people" % "0.0.1"
+  "org.apache.commons" % "commons-math3" % "3.6.1"
 )

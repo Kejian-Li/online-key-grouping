@@ -63,11 +63,11 @@ class CoordinatorActor(instanceActors: Array[ActorRef],
   }
 
   def generateRoutingTable(): RoutingTable = {
-    new RoutingTable()
+    new RoutingTable(mutable.Map.empty[Int, Int])
   }
 
-  def makeMigrationTable(routingTable: RoutingTable): mutable.HashMap[Int, Int] = {
+  def makeMigrationTable(routingTable: RoutingTable)= {
 
-    new MigrationTable()
+    new MigrationTable(mutable.Map.empty[Int, Entry])
   }
 }

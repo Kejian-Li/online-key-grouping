@@ -7,17 +7,20 @@ import com.okg.tuple.{Tuple, TupleQueue}
 
 /**
   * Class for Operator instance
+  *
   * @param instanceActors
   */
-class InstanceActor(instanceActors: Array[ActorRef]) extends Actor with FSM[InstanceState, InstanceStateData] {
+class InstanceActor extends Actor with FSM[InstanceState, InstanceStateData] {
 
   var coordinatorRef = Actor.noSender
   startWith(RUN, new InstanceStateData(0, new TupleQueue[Tuple[Int]]))
 
   when(RUN) {
     case Event(tuple: Tuple[Int], data: InstanceStateData) => {
-      stay() using (data.copy(num = data.num + 1))
+      // enqueue tuple
+      stay() using (data.copy(tupleNums = data.tupleNums + 1))
     }
+
     case Event(migrationTable: MigrationTable, data: InstanceStateData) => {
       coordinatorRef = sender()
       goto(MIGRATION)
@@ -33,7 +36,6 @@ class InstanceActor(instanceActors: Array[ActorRef]) extends Actor with FSM[Inst
   onTransition {
     case RUN -> MIGRATION => {
       // migration procedure
-
 
       self ! Done
     }

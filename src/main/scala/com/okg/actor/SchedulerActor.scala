@@ -7,6 +7,7 @@ import com.okg.message._
 import com.okg.state._
 import com.okg.tuple.{Tuple, TupleQueue}
 import com.okg.util.{SpaceSaving, TwoUniversalHash}
+import org.apache.commons.math3.random.RandomDataGenerator
 
 /**
   * Class for Scheduler instance
@@ -65,7 +66,7 @@ class SchedulerActor(N: Int,   // number of received tuples before entering COLL
 
   when(HASH) {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
-      schedulerStateData.n += 1
+      schedulerStateData.copy(n = schedulerStateData.n + 1)
       assignTuple(tuple, schedulerStateData.routingTable)
 
       if (schedulerStateData.n == N) {
@@ -87,7 +88,7 @@ class SchedulerActor(N: Int,   // number of received tuples before entering COLL
   when(COLLECT) {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
 
-      schedulerStateData.n += 1
+      schedulerStateData.copy(n = schedulerStateData.n + 1)
 
       val key = tuple.key
       schedulerStateData.spaceSaving.newSample(key)
@@ -114,7 +115,7 @@ class SchedulerActor(N: Int,   // number of received tuples before entering COLL
 
   whenUnhandled {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
-      schedulerStateData.n += 1
+      schedulerStateData.copy(n = schedulerStateData.n + 1)
 
       val key = tuple.key
       schedulerStateData.spaceSaving.newSample(key)

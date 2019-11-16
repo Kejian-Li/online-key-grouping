@@ -3,7 +3,7 @@ package com.okg.main
 import akka.actor.{ActorRef, ActorSystem, Props}
 import com.okg.actor.{CoordinatorActor, InstanceActor, SchedulerActor}
 
-class Main {
+object Main {
 
   def main(args: Array[String]): Unit = {
     val system = ActorSystem()
@@ -17,17 +17,18 @@ class Main {
 
 
     val schedulerActors = new Array[ActorRef](s)
-    for (i <- 0 to s) {
-      schedulerActors(i) = system.actorOf(Props(new SchedulerActor(N, m, k, epsilon, theta, coordinatorActorRef)))
-    }
 
     val instanceActors = new Array[ActorRef](k)
-    for (i <- 0 to k) {
+    for (i <- 0 to k - 1) {
       instanceActors(i) = system.actorOf(Props(new InstanceActor()))
     }
 
     val coordinatorActorRef = system.actorOf(Props(new CoordinatorActor(instanceActors, s, k)))
 
+    for (i <- 0 to s - 1) {
+      schedulerActors(i) =
+        system.actorOf(Props(new SchedulerActor(N, m, k, epsilon, theta, coordinatorActorRef, instanceActors)))
+    }
 
   }
 
