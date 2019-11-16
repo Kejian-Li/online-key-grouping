@@ -1,8 +1,8 @@
-package com.akka.inventory
+package com.akka.inventory.state
 
 sealed trait State
 
-case object WaitForRequest extends State
+case object WaitForRequests extends State
 
 case object ProcessRequest extends State
 

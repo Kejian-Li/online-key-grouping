@@ -1,6 +1,6 @@
 package com.okg.state
 
-sealde trait SchedulerState extends State
+sealed trait SchedulerState extends State
 
 case object HASH extends SchedulerState
 

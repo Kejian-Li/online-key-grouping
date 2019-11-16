@@ -2,62 +2,56 @@ package com.okg.actor
 
 import akka.actor.{Actor, ActorRef, FSM}
 import com.okg.message._
-import com.okg.state.{CoordinatorState, GENERATION, WAIT_ALL}
+import com.okg.state._
+import com.okg.tuple.TupleQueue
 
 import scala.collection.mutable
 
-class CoordinatorActor extends Actor with FSM[CoordinatorState, MessageQueue[Message]] {
-  private val k = 5
-  private var sketches = 0
-  private var notification = 0
+class CoordinatorActor(schedulerActors: Array[ActorRef],
+                       instanceActors: Array[InstanceActor],
+                       k: Int,
+                       l: Int)
+  extends Actor with FSM[CoordinatorState, CoordinatorStateData] {
 
-  private var routingTable: RoutingTable = _
-  private val messageQueue: MessageQueue[Message] = _
-
-  private val actor: ActorRef = _
-
-  startWith(WAIT_ALL, messageQueue)
+  startWith(WAIT_ALL, new CoordinatorStateData(new TupleQueue[Int], new RoutingTable()))
 
   when(WAIT_ALL) {
-    case Event(sketch: Sketch, messageQueue: MessageQueue[Message]) => {
-      sketches += 1
-      if (sketches == k) {
-        sketches = 0
-        goto(GENERATION)
+    case Event(sketch: Sketch, coordinatorStateData: CoordinatorStateData) => {
+      if (coordinatorStateData.sketches.size == k) {
+        goto(GENERATION) using (coordinatorStateData.copy(sketches = new Array[Sketch](k)))
       }
+      stay() using (coordinatorStateData.copy(sketches = coordinatorStateData.sketches :+ sketch))
     }
   }
 
   when(GENERATION) {
-    case Event(MigrationCompleted, _) => {
-      notification += 1
-      if (notification == k) {
-        actor ! routingTable
+    case Event(MigrationCompleted, coordinatorStateData: CoordinatorStateData) => {
+      coordinatorStateData.copy(notifications = coordinatorStateData.notifications + 1)
+      if(coordinatorStateData.notifications == k) {
+        coordinatorStateData.copy(notifications = 0)
+        goto(WAIT_ALL)
       }
+      stay()
     }
   }
 
 
   onTransition {
     case _ -> GENERATION => {
-      routingTable = generateRoutingTable()
-      val migrationTable = makeMigrationTable()
-      for (i <- 1 to k) {
-        actor ! migrationTable
-      }
-    }
-    case _ -> WAIT_ALL => {
-      notification = 0
-      sketches = 0
+      val routingTable = generateRoutingTable()
+      val migrationTable = makeMigrationTable(routingTable)
+      schedulerActors.foreach(schedulerActor => {
+        schedulerActor ! migrationTable
+      })
     }
   }
 
   def generateRoutingTable(): RoutingTable = {
-    RoutingTable()
+    new RoutingTable()
   }
 
-  def makeMigrationTable(): mutable.HashMap[Int, Int] = {
+  def makeMigrationTable(routingTable: RoutingTable): mutable.HashMap[Int, Int] = {
 
-    MigrationTable
+    new MigrationTable()
   }
 }

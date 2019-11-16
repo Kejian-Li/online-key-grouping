@@ -1,12 +1,17 @@
 package com.akka.inventory
 
 import akka.actor.{Actor, ActorRef, FSM}
+import com.akka.inventory.events._
+import com.akka.inventory.response.{BookReply, PublisherRequest}
+import com.akka.inventory.state._
 
 class Inventory(publisher: ActorRef) extends Actor with FSM[State, StateData] {
 
-  startWith(WaitForRequest, new StateData(0, Seq()))
+  var reserveId = 0
 
-  when(WaitForRequest) {
+  startWith(WaitForRequests, new StateData(0, Seq()))
+
+  when(WaitForRequests) {
     case Event(request: BookRequest, stateData: StateData) => {
       val newStateData = stateData.copy(pendingRequests = stateData.pendingRequests :+ request)
       if (newStateData.nrBooksInStore > 0) {
@@ -37,7 +42,7 @@ class Inventory(publisher: ActorRef) extends Actor with FSM[State, StateData] {
 
   when(ProcessRequest) {
     case Event(Done, stateData: StateData) => {
-      goto(WaitForRequest) using (stateData.copy(nrBooksInStore = stateData.nrBooksInStore - 1,
+      goto(WaitForRequests) using (stateData.copy(nrBooksInStore = stateData.nrBooksInStore - 1,
         pendingRequests = stateData.pendingRequests.tail))
     }
   }
@@ -54,18 +59,29 @@ class Inventory(publisher: ActorRef) extends Actor with FSM[State, StateData] {
     }
   }
 
+  //common code for all states
+  whenUnhandled {
+    case Event(request: BookRequest, stateData: StateData) => {
+      stay() using (stateData.copy(pendingRequests = stateData.pendingRequests :+ request))
+    }
+    case Event(e, s) => {
+      log.warning("received unhandled request{} in state{} / {}", e, stateName, s)
+      stay()
+    }
+  }
+
   onTransition {
-    case _ -> WaitForRequest => {
+    case _ -> WaitForRequests => {
       if (!nextStateData.pendingRequests.isEmpty) {
         self ! PendingRequests
       }
     }
     case _ -> WaitForPublisher => {
-      publisher ! PublishRequest
+      publisher ! PublisherRequest
     }
     case _ -> ProcessRequest => {
       val request = nextStateData.pendingRequests.head
-      reservedId += 1
+      reserveId += 1
       request.target ! new BookReply(request.context, Right(reserveId))
       self ! Done
     }
