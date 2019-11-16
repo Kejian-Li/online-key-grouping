@@ -12,5 +12,5 @@ import com.okg.tuple.TupleQueue
   */
 case class CoordinatorStateData(tupleQueue: TupleQueue[Int],
                                 currentRoutingTable: RoutingTable,
-                                sketches: Seq[Sketch],
+                                sketches: List[Sketch],
                                 notifications: Int)

@@ -31,8 +31,6 @@ class OKG_Test extends TestKit(ActorSystem("OKG")) with WordSpecLike {
           system.actorOf(Props(new SchedulerActor(N, m, k, epsilon, theta, coordinatorActorRef, instanceActors)))
       }
 
-
-
     }
   }
 

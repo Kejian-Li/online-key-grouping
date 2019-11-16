@@ -16,16 +16,16 @@ import scala.collection.mutable
   * @param k
   */
 case class CoordinatorActor(instanceActors: Array[ActorRef],
-                       s: Int, // number of scheduler instances
-                       k: Int) // number of operator instances
+                            s: Int, // number of scheduler instances
+                            k: Int) // number of operator instances
   extends Actor with FSM[CoordinatorState, CoordinatorStateData] {
 
   val schedulerActors = Set.empty[ActorRef]
-  var nextRoutingTable = new RoutingTable(mutable.Map.empty[Int, Int])  // empty routing table
+  var nextRoutingTable = new RoutingTable(mutable.Map.empty[Int, Int]) // empty routing table
 
   val coordinatorStateData = new CoordinatorStateData(new TupleQueue[Int],
     new RoutingTable(mutable.Map.empty[Int, Int]),
-    new Array[Sketch](s),
+    List.empty[Sketch],
     0)
 
   startWith(WAIT_ALL, coordinatorStateData)
@@ -33,10 +33,12 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
   when(WAIT_ALL) {
     case Event(sketch: Sketch, coordinatorStateData: CoordinatorStateData) => {
       schedulerActors.incl(sender())
-      coordinatorStateData.sketches
+      coordinatorStateData.sketches :+ (sketch)
+
+      log.info("sketch size is: " + coordinatorStateData.sketches.size)
 
       if (coordinatorStateData.sketches.size == s) {
-        goto(GENERATION) using (coordinatorStateData.copy(sketches = new Array[Sketch](s)))
+        goto(GENERATION) using (coordinatorStateData.copy(sketches = List.empty[Sketch]))
       }
       stay()
     }
@@ -46,7 +48,7 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
     case Event(MigrationCompleted, coordinatorStateData: CoordinatorStateData) => {
       coordinatorStateData.copy(notifications = coordinatorStateData.notifications + 1)
       if (coordinatorStateData.notifications == s) {
-        if(nextRoutingTable.map.isEmpty) {   // sanity check
+        if (nextRoutingTable.map.isEmpty) { // sanity check
           log.error("next routing table is empty")
         }
         goto(WAIT_ALL) using (coordinatorStateData.copy(notifications = 0, currentRoutingTable = nextRoutingTable))
