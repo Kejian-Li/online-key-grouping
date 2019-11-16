@@ -9,8 +9,7 @@ case class SchedulerStateData(N: Int,
                               n: Int,
                               k: Int,
                               spaceSaving: SpaceSaving,
-                              A: Array[Int],
+                              sketch: Sketch,
                               routingTable: RoutingTable,
-                              tupleQueue: TupleQueue[Tuple[Int]],
-                              sketch: Sketch)
+                              tupleQueue: TupleQueue[Tuple[Int]])
 

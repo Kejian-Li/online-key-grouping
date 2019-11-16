@@ -1,12 +1,14 @@
 package com.okg.actor
 
+import java.util
+
 import akka.actor.{Actor, ActorRef, FSM}
 import com.okg.message._
 import com.okg.state._
 import com.okg.tuple.{Tuple, TupleQueue}
 import com.okg.util.{SpaceSaving, TwoUniversalHash}
 
-import scala.collection.{JavaConverters, mutable}
+import scala.collection.mutable
 
 class SchedulerActor(N: Int,
                      m: Int,
@@ -17,16 +19,15 @@ class SchedulerActor(N: Int,
 
   val hashFunction = instantiateHashFunction()
 
+
   startWith(HASH, new SchedulerStateData(N,
     m,
     0,
     k,
     new SpaceSaving(epsilon, theta),
-    new Array[Int](k),
+    new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k)),
     new RoutingTable(mutable.Map.empty[Int, Int]),
-    new TupleQueue[Tuple[Int]]),
-    new Sketch(mutable.Map.empty[Integer, Integer], new Array[Int](k))
-
+    new TupleQueue[Tuple[Int]])
   )
 
 
@@ -58,7 +59,7 @@ class SchedulerActor(N: Int,
 
   when(HASH) {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
-      schedulerStateData.copy(n = schedulerStateData.n + 1)
+      schedulerStateData.n += 1
       assignTuple(tuple, schedulerStateData.routingTable)
 
       if (schedulerStateData.n == N) {
@@ -68,38 +69,62 @@ class SchedulerActor(N: Int,
     }
   }
 
+  def updateSketch(heavyHitters: util.HashMap[Integer, Integer], sketch: Sketch) = {
+    val it = heavyHitters.entrySet().iterator()
+
+    while (it.hasNext) {
+      val entry = it.next()
+      sketch.map.put(entry.getKey, entry.getValue)
+    }
+  }
+
   when(COLLECT) {
-    case Event(Done, schedulerStateData: SchedulerStateData) => {
-      goto(WAIT)
+    case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
+
+      schedulerStateData.n += 1
+
+      val key = tuple.key
+      schedulerStateData.spaceSaving.newSample(key)
+      val index = hash(key)
+      schedulerStateData.sketch.A.update(index, schedulerStateData.sketch.A.apply(index) + 1)
+
+      schedulerStateData.tupleQueue.addOne(tuple)
+
+      if (schedulerStateData.n == m) {
+        val heavyHitters = schedulerStateData.spaceSaving.getHeavyHitters
+
+        updateSketch(heavyHitters, schedulerStateData.sketch)
+
+        // clear
+        schedulerStateData.copy(n = 0)
+        for (i <- 1 to k) {
+          schedulerStateData.sketch.A.update(i, 0)
+        }
+        schedulerStateData.sketch.map.clear()
+
+        goto(WAIT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta)))
+      }
+      stay()
     }
   }
 
   when(WAIT) {
-    case Event(routingTable: RoutingTable, schedulerStateData: SchedulerStateData) => {
-      goto(ASSIGN) using (schedulerStateData.copy(routingTable = routingTable))
+    case Event(table: RoutingTable, schedulerStateData: SchedulerStateData) => {
+      goto(ASSIGN) using (schedulerStateData.copy(routingTable = table))
     }
   }
 
   whenUnhandled {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
+      schedulerStateData.n += 1
 
       val key = tuple.key
       schedulerStateData.spaceSaving.newSample(key)
       val index = hash(key)
-      schedulerStateData.A.update(index, schedulerStateData.A.apply(index) + 1)
+      schedulerStateData.sketch.A.update(index, schedulerStateData.sketch.A.apply(index) + 1)
+      schedulerStateData.tupleQueue.addOne(tuple)
 
-      if (schedulerStateData.n == m) {
-        makeAndSendSketch(schedulerStateData.A, schedulerStateData.spaceSaving)
-        // clear
-        schedulerStateData.copy(n = 0)
-        for (i <- 1 to k) {
-          schedulerStateData.A.update(i, 0)
-        }
-
-        goto(COLLECT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta)))
-      }
-      stay() using (schedulerStateData.copy(n = schedulerStateData.n + 1,
-        tupleQueue = schedulerStateData.tupleQueue.addOne(tuple)))
+      stay()
     }
   }
 
@@ -118,31 +143,14 @@ class SchedulerActor(N: Int,
   }
 
   onTransition {
-    case _ -> COLLECT => {
-      self ! Done // collect is completed
+    case _ -> WAIT => {
+      coordinatorActor ! nextStateData.sketch
     }
+
     case _ -> ASSIGN => {
       assign(nextStateData.tupleQueue, nextStateData.routingTable)
       self ! Done // assignment is completed
     }
-    case _ -> WAIT => {
-      coordinatorActor ! sketch
-    }
-  }
-
-  def makeAndSendSketch(A: Array[Int], spaceSaving: SpaceSaving) = {
-    val heavyHitters = JavaConverters.mapAsScalaMapConverter(spaceSaving.getHeavyHitters())
-      .asScala.toMap // M
-
-    heavyHitters.foreach(entry => {
-      val key = entry._1
-      val frequency = entry._2
-      val index = hash(key)
-      A.update(index, A.apply(index) - frequency)
-
-      sketch = new Sketch(heavyHitters, A)
-    }
-    )
   }
 
 }
