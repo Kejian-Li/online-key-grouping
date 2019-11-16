@@ -93,7 +93,7 @@ class SchedulerActor(N: Int,   // number of received tuples before entering COLL
       val key = tuple.key
       schedulerStateData.spaceSaving.newSample(key)
       val index = hash(key)
-      schedulerStateData.sketch.A.update(index, schedulerStateData.sketch.A.apply(index) + 1)
+      schedulerStateData.sketch.A.update(index, schedulerStateData.sketch.A(index) + 1)
 
       schedulerStateData.tupleQueue.addOne(tuple)
 
@@ -108,8 +108,8 @@ class SchedulerActor(N: Int,   // number of received tuples before entering COLL
   }
 
   when(WAIT) {
-    case Event(table: RoutingTable, schedulerStateData: SchedulerStateData) => {
-      goto(ASSIGN) using (schedulerStateData.copy(routingTable = table))
+    case Event(startAssignment: StartAssignment, schedulerStateData: SchedulerStateData) => {
+      goto(ASSIGN) using (schedulerStateData.copy(routingTable = startAssignment.routingTable))
     }
   }
 
@@ -120,7 +120,7 @@ class SchedulerActor(N: Int,   // number of received tuples before entering COLL
       val key = tuple.key
       schedulerStateData.spaceSaving.newSample(key)
       val index = hash(key)
-      schedulerStateData.sketch.A.update(index, schedulerStateData.sketch.A.apply(index) + 1)
+      schedulerStateData.sketch.A.update(index, schedulerStateData.sketch.A(index) + 1)
       schedulerStateData.tupleQueue.addOne(tuple)
 
       stay()
@@ -145,7 +145,7 @@ class SchedulerActor(N: Int,   // number of received tuples before entering COLL
     case _ -> WAIT => {
       // clear
       nextStateData.copy(n = 0)
-      for (i <- 1 to k) {
+      for (i <- 0 to k - 1) {
         nextStateData.sketch.A.update(i, 0)
       }
       nextStateData.sketch.map.clear()
