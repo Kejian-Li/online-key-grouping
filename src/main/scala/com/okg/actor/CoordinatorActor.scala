@@ -9,17 +9,19 @@ import scala.collection.mutable
 
 /**
   * Class for Coordinator
+  *
   * @param schedulerActors
   * @param instanceActors
   * @param s
   * @param k
   */
-class CoordinatorActor(instanceActors: Array[ActorRef],
+case class CoordinatorActor(instanceActors: Array[ActorRef],
                        s: Int, // number of scheduler instances
-                       k: Int)  // number of operator instances
+                       k: Int) // number of operator instances
   extends Actor with FSM[CoordinatorState, CoordinatorStateData] {
 
   val schedulerActors = Set.empty[ActorRef]
+  var nextRoutingTable = new RoutingTable(mutable.Map.empty[Int, Int])  // empty routing table
 
   val coordinatorStateData = new CoordinatorStateData(new TupleQueue[Int],
     new RoutingTable(mutable.Map.empty[Int, Int]),
@@ -31,7 +33,7 @@ class CoordinatorActor(instanceActors: Array[ActorRef],
   when(WAIT_ALL) {
     case Event(sketch: Sketch, coordinatorStateData: CoordinatorStateData) => {
       schedulerActors.incl(sender())
-      coordinatorStateData.sketches :+ sketch
+      coordinatorStateData.sketches
 
       if (coordinatorStateData.sketches.size == s) {
         goto(GENERATION) using (coordinatorStateData.copy(sketches = new Array[Sketch](s)))
@@ -44,29 +46,38 @@ class CoordinatorActor(instanceActors: Array[ActorRef],
     case Event(MigrationCompleted, coordinatorStateData: CoordinatorStateData) => {
       coordinatorStateData.copy(notifications = coordinatorStateData.notifications + 1)
       if (coordinatorStateData.notifications == s) {
-        coordinatorStateData.copy(notifications = 0)
-        goto(WAIT_ALL)
+        if(nextRoutingTable.map.isEmpty) {   // sanity check
+          log.error("next routing table is empty")
+        }
+        goto(WAIT_ALL) using (coordinatorStateData.copy(notifications = 0, currentRoutingTable = nextRoutingTable))
       }
       stay()
     }
   }
 
-
   onTransition {
     case _ -> GENERATION => {
-      val routingTable = generateRoutingTable()
-      val migrationTable = makeMigrationTable(routingTable)
+      nextRoutingTable = generateRoutingTable()
+      val migrationTable = makeMigrationTable(nextRoutingTable)
       schedulerActors.foreach(schedulerActor => {
         schedulerActor ! migrationTable
+      })
+    }
+    case _ -> WAIT_ALL => {
+      schedulerActors.foreach(schedulerActor => {
+        schedulerActor ! new StartAssignment(nextRoutingTable)
       })
     }
   }
 
   def generateRoutingTable(): RoutingTable = {
+    // generate a new routing table
     new RoutingTable(mutable.Map.empty[Int, Int])
   }
 
-  def makeMigrationTable(routingTable: RoutingTable)= {
+  def makeMigrationTable(nextRoutingTable: RoutingTable) = {
+
+    // compare currentRoutingTable with nextRoutingTable to make migration table
 
     new MigrationTable(mutable.Map.empty[Int, Entry])
   }

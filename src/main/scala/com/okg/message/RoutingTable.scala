@@ -2,7 +2,7 @@ package com.okg.message
 
 import scala.collection.mutable
 
-class RoutingTable(map: mutable.Map[Int, Int]) extends Message {
+case class RoutingTable(map: mutable.Map[Int, Int]) extends Message {
 
   def get(key: Int) = {
     map.get(key)

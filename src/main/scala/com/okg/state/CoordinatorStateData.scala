@@ -3,7 +3,14 @@ package com.okg.state
 import com.okg.message.{RoutingTable, Sketch}
 import com.okg.tuple.TupleQueue
 
+/**
+  *
+  * @param tupleQueue
+  * @param routingTable
+  * @param sketches
+  * @param notifications  number of notifications Operator instances send
+  */
 case class CoordinatorStateData(tupleQueue: TupleQueue[Int],
-                                routingTable: RoutingTable,
+                                currentRoutingTable: RoutingTable,
                                 sketches: Seq[Sketch],
                                 notifications: Int)
