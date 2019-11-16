@@ -8,19 +8,23 @@ import com.okg.state._
 import com.okg.tuple.{Tuple, TupleQueue}
 import com.okg.util.{SpaceSaving, TwoUniversalHash}
 
+/**
+  * Class for Scheduler instance
+  */
+
 import scala.collection.mutable
 
-class SchedulerActor(N: Int,
-                     m: Int,
-                     k: Int,
+class SchedulerActor(N: Int,   // number of received tuples before entering COLLECT state
+                     m: Int,   // number of received tuples
+                     k: Int,   // number of operator instance
                      epsilon: Double,
                      theta: Double,
-                     coordinatorActor: ActorRef) extends Actor with FSM[SchedulerState, SchedulerStateData] {
+                     coordinatorActor: ActorRef,
+                     instanceActors: Array[ActorRef]) extends Actor with FSM[SchedulerState, SchedulerStateData] {
 
   val hashFunction = instantiateHashFunction()
 
-
-  startWith(HASH, new SchedulerStateData(N,
+  val schedulerStateDate = new SchedulerStateData(N,
     m,
     0,
     k,
@@ -28,8 +32,8 @@ class SchedulerActor(N: Int,
     new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k)),
     new RoutingTable(mutable.Map.empty[Int, Int]),
     new TupleQueue[Tuple[Int]])
-  )
 
+  startWith(HASH, schedulerStateDate)
 
   private def instantiateHashFunction() = {
     val codomain = Math.ceil(k).toInt
@@ -47,14 +51,16 @@ class SchedulerActor(N: Int,
     hashFunction.hash(key)
   }
 
-  def assignTuple(tuple: Tuple[Int], routingTable: RoutingTable): Int = {
+  def assignTuple(tuple: Tuple[Int], routingTable: RoutingTable) = {
+    var index = -1
     val key = tuple.key
     if (routingTable.containsKey(key)) {
       val value = routingTable.get(key)
-      value.get
+      index = value.get
     } else {
-      hash(key)
+      index = hash(key)
     }
+    instanceActors(index) ! tuple
   }
 
   when(HASH) {
@@ -92,17 +98,9 @@ class SchedulerActor(N: Int,
 
       if (schedulerStateData.n == m) {
         val heavyHitters = schedulerStateData.spaceSaving.getHeavyHitters
+        updateSketch(heavyHitters, nextStateData.sketch)
 
-        updateSketch(heavyHitters, schedulerStateData.sketch)
-
-        // clear
-        schedulerStateData.copy(n = 0)
-        for (i <- 1 to k) {
-          schedulerStateData.sketch.A.update(i, 0)
-        }
-        schedulerStateData.sketch.map.clear()
-
-        goto(WAIT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta)))
+        goto(WAIT)
       }
       stay()
     }
@@ -144,6 +142,14 @@ class SchedulerActor(N: Int,
 
   onTransition {
     case _ -> WAIT => {
+      // clear
+      nextStateData.copy(n = 0)
+      for (i <- 1 to k) {
+        nextStateData.sketch.A.update(i, 0)
+      }
+      nextStateData.sketch.map.clear()
+      nextStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta))
+
       coordinatorActor ! nextStateData.sketch
     }
 

@@ -7,27 +7,43 @@ import com.okg.tuple.TupleQueue
 
 import scala.collection.mutable
 
-class CoordinatorActor(schedulerActors: Array[ActorRef],
-                       instanceActors: Array[InstanceActor],
-                       k: Int,
-                       l: Int)
+/**
+  * Class for Coordinator
+  * @param schedulerActors
+  * @param instanceActors
+  * @param s
+  * @param k
+  */
+class CoordinatorActor(instanceActors: Array[ActorRef],
+                       s: Int, // number of scheduler instances
+                       k: Int)  // number of operator instances
   extends Actor with FSM[CoordinatorState, CoordinatorStateData] {
 
-  startWith(WAIT_ALL, new CoordinatorStateData(new TupleQueue[Int], new RoutingTable()))
+  val schedulerActors = Set.empty[ActorRef]
+
+  val coordinatorStateData = new CoordinatorStateData(new TupleQueue[Int],
+    new RoutingTable(mutable.Map.empty[Int, Int]),
+    new Array[Sketch](s),
+    0)
+
+  startWith(WAIT_ALL, coordinatorStateData)
 
   when(WAIT_ALL) {
     case Event(sketch: Sketch, coordinatorStateData: CoordinatorStateData) => {
-      if (coordinatorStateData.sketches.size == k) {
-        goto(GENERATION) using (coordinatorStateData.copy(sketches = new Array[Sketch](k)))
+      schedulerActors.incl(sender())
+      coordinatorStateData.sketches :+ sketch
+
+      if (coordinatorStateData.sketches.size == s) {
+        goto(GENERATION) using (coordinatorStateData.copy(sketches = new Array[Sketch](s)))
       }
-      stay() using (coordinatorStateData.copy(sketches = coordinatorStateData.sketches :+ sketch))
+      stay()
     }
   }
 
   when(GENERATION) {
     case Event(MigrationCompleted, coordinatorStateData: CoordinatorStateData) => {
       coordinatorStateData.copy(notifications = coordinatorStateData.notifications + 1)
-      if(coordinatorStateData.notifications == k) {
+      if (coordinatorStateData.notifications == s) {
         coordinatorStateData.copy(notifications = 0)
         goto(WAIT_ALL)
       }
