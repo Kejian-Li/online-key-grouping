@@ -111,6 +111,7 @@ class SchedulerActor(index: Int,  // index of this scheduler instance
 
   when(WAIT) {
     case Event(startAssignment: StartAssignment, schedulerStateData: SchedulerStateData) => {
+      log.info("received routing table, starting assignment")
       goto(ASSIGN) using (schedulerStateData.copy(routingTable = startAssignment.routingTable))
     }
   }
@@ -131,9 +132,11 @@ class SchedulerActor(index: Int,  // index of this scheduler instance
 
   def assign(tupleQueue: TupleQueue[Tuple[Int]], routingTable: RoutingTable) = {
     var tuple = tupleQueue.head
+    tupleQueue.drop(1)
     while (tuple != null) {
       assignTuple(tuple, routingTable)
       tuple = tupleQueue.head
+      tupleQueue.drop(1)
     }
   }
 

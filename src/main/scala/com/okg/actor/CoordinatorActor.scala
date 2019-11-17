@@ -95,6 +95,7 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
         heavyHittersMapping.put(entry._1, index)
       }
     )
+    log.info("build global mapping function successfully")
     new RoutingTable(heavyHittersMapping)
   }
 
@@ -122,6 +123,7 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
 
   // compare currentRoutingTable with nextRoutingTable to make migration table
   def makeMigrationTable(nextRoutingTable: RoutingTable) = {
+    val currentRoutingTable = nextStateData.currentRoutingTable
 
     new MigrationTable(mutable.Map.empty[Int, Entry])
   }
