@@ -6,7 +6,7 @@ import com.okg.util.SpaceSaving
 
 case class SchedulerStateData(N: Int,
                               m: Int,
-                              n: Int,
+                              var n: Int,
                               k: Int,
                               spaceSaving: SpaceSaving,
                               sketch: Sketch,

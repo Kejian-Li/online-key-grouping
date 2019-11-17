@@ -15,9 +15,10 @@ import org.apache.commons.math3.random.RandomDataGenerator
 
 import scala.collection.mutable
 
-class SchedulerActor(N: Int,   // number of received tuples before entering COLLECT state
-                     m: Int,   // number of received tuples
-                     k: Int,   // number of operator instance
+class SchedulerActor(index: Int,  // index of this scheduler instance
+                     N: Int, // number of received tuples before entering COLLECT state
+                     m: Int, // number of received tuples
+                     k: Int, // number of operator instance
                      epsilon: Double,
                      theta: Double,
                      coordinatorActor: ActorRef,
@@ -27,7 +28,7 @@ class SchedulerActor(N: Int,   // number of received tuples before entering COLL
 
   val schedulerStateDate = new SchedulerStateData(N,
     m,
-    0,
+    0,  // n
     k,
     new SpaceSaving(epsilon, theta),
     new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k)),
@@ -66,7 +67,8 @@ class SchedulerActor(N: Int,   // number of received tuples before entering COLL
 
   when(HASH) {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
-      schedulerStateData.copy(n = schedulerStateData.n + 1)
+      schedulerStateData.n += 1
+      log.info("scheduler instance "+ index + " received a tuple, " + schedulerStateData.n + " tuples in total")
       assignTuple(tuple, schedulerStateData.routingTable)
 
       if (schedulerStateData.n == N) {
@@ -87,8 +89,8 @@ class SchedulerActor(N: Int,   // number of received tuples before entering COLL
 
   when(COLLECT) {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
-
-      schedulerStateData.copy(n = schedulerStateData.n + 1)
+      log.info("now in the COLLECT state")
+      schedulerStateData.n += 1
 
       val key = tuple.key
       schedulerStateData.spaceSaving.newSample(key)
@@ -115,7 +117,7 @@ class SchedulerActor(N: Int,   // number of received tuples before entering COLL
 
   whenUnhandled {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
-      schedulerStateData.copy(n = schedulerStateData.n + 1)
+      schedulerStateData.n += 1
 
       val key = tuple.key
       schedulerStateData.spaceSaving.newSample(key)
