@@ -72,15 +72,56 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
     }
   }
 
+  def findLeastLoad(buckets: Array[Int]): Int = {
+    var minLoad = Int.MaxValue
+    var minIndex = -1
+    for (i <- 0 to s - 1) {
+      if(buckets(i) < minLoad) {
+        minLoad = buckets(i)
+        minIndex = i
+      }
+    }
+    minIndex
+  }
+
+  // build mapping and return routing table
+  def buildGlobalMappingFunction(heavyHitters: mutable.Map[Int, Int],
+                                 buckets: Array[Int]) = {
+    val heavyHittersMapping = mutable.Map.empty[Int, Int]
+    heavyHitters.foreach(
+      entry => {
+        val index = findLeastLoad(buckets)
+        buckets.update(index, buckets(index) + heavyHitters.get(entry._1).get)
+        heavyHittersMapping.put(entry._1, index)
+      }
+    )
+    new RoutingTable(heavyHittersMapping)
+  }
+
   // generate a new routing table
   def generateRoutingTable(coordinatorStateData: CoordinatorStateData): RoutingTable = {
+    val heavyHitters = mutable.TreeMap.empty[Int, Int]
+    val buckets = new Array[Int](s)
+    coordinatorStateData.sketches.foreach(
+      sketch => {
 
-    new RoutingTable(mutable.Map.empty[Int, Int])
+        sketch.map.foreach(
+          entry => {
+            heavyHitters.put(entry._1, heavyHitters.getOrElse(entry._1, 0) + entry._2)
+          }
+        )
+
+        for (i <- 0 to s) {
+          buckets(i) += sketch.A(i)
+        }
+      }
+    )
+
+    buildGlobalMappingFunction(heavyHitters, buckets)
   }
 
   // compare currentRoutingTable with nextRoutingTable to make migration table
   def makeMigrationTable(nextRoutingTable: RoutingTable) = {
-
 
     new MigrationTable(mutable.Map.empty[Int, Entry])
   }
