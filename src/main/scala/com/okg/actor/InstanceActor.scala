@@ -7,8 +7,6 @@ import com.okg.tuple.{Tuple, TupleQueue}
 
 /**
   * Class for Operator instance
-  *
-  * @param instanceActors
   */
 class InstanceActor extends Actor with FSM[InstanceState, InstanceStateData] {
 
@@ -36,7 +34,7 @@ class InstanceActor extends Actor with FSM[InstanceState, InstanceStateData] {
   onTransition {
     case RUN -> MIGRATION => {
       // migration procedure
-      
+
       self ! Done
     }
     case MIGRATION -> RUN => {

@@ -38,7 +38,6 @@ class SchedulerActor(index: Int, // index of this scheduler instance
   startWith(HASH, schedulerStateDate)
 
   private def instantiateHashFunction() = {
-    val codomain = Math.ceil(k).toInt
 
     val uniformGenerator = new RandomDataGenerator()
     uniformGenerator.reSeed(1000)
@@ -46,7 +45,7 @@ class SchedulerActor(index: Int, // index of this scheduler instance
     val prime = 10000019L
     val a = uniformGenerator.nextLong(1, prime - 1)
     val b = uniformGenerator.nextLong(1, prime - 1)
-    new TwoUniversalHash(codomain, prime, a, b)
+    new TwoUniversalHash(k, prime, a, b)
   }
 
   def hash(key: Int): Int = {
@@ -57,8 +56,7 @@ class SchedulerActor(index: Int, // index of this scheduler instance
     var index = -1
     val key = tuple.key
     if (routingTable.containsKey(key)) {
-      val value = routingTable.get(key)
-      index = value.get
+      index = routingTable.get(key)
     } else {
       index = hash(key)
     }

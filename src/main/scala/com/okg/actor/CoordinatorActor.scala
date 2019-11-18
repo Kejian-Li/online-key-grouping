@@ -23,7 +23,7 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
   val schedulerActors = Set.empty[ActorRef]
   var nextRoutingTable = new RoutingTable(mutable.Map.empty[Int, Int]) // empty routing table
 
-  val coordinatorStateData = new CoordinatorStateData(new TupleQueue[Int],
+  val coordinatorStateData = new CoordinatorStateData(
     new RoutingTable(mutable.Map.empty[Int, Int]),
     List.empty[Sketch],
     0)
@@ -48,15 +48,14 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
 
   when(GENERATION) {
     case Event(MigrationCompleted, coordinatorStateData: CoordinatorStateData) => {
-      coordinatorStateData.copy(notifications = coordinatorStateData.notifications + 1)
-      if (coordinatorStateData.notifications == s) {
+      val newStateData = coordinatorStateData.copy(notifications = coordinatorStateData.notifications + 1)
+
+      if (newStateData.notifications == s) {
         if (nextRoutingTable.map.isEmpty) { // sanity check
           log.error("next routing table is empty")
         }
-        goto(WAIT_ALL) using (coordinatorStateData.copy(
-          notifications = 0,
-          currentRoutingTable = nextRoutingTable,
-          sketches = List.empty[Sketch]))
+        goto(WAIT_ALL) using (
+          new CoordinatorStateData(nextRoutingTable, List.empty[Sketch], 0))
       } else {
         stay()
       }
