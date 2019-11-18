@@ -1,21 +1,24 @@
 package com.okg.main
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import com.csvreader.CsvReader
 import com.okg.message.{Load, SimulationDone}
 import com.okg.tuple.Tuple
 
 /**
   * Simulation Actor with main simulation logic
+  *
   * @param coordinatorActor
   * @param schedulerActors
   * @param instanceActors
   */
 class SimulationActor(coordinatorActor: ActorRef,
                       schedulerActors: Array[ActorRef],
-                      instanceActors: Array[ActorRef]) extends Actor {
+                      instanceActors: Array[ActorRef]) extends Actor with ActorLogging {
 
-  var load: Int = 0
+  val k = instanceActors.size
+  var loads = new Array[Int](k)
+  var receivedLoad = 0
 
   def startSimulation(): Unit = {
     val inFileName =
@@ -36,14 +39,21 @@ class SimulationActor(coordinatorActor: ActorRef,
       item = csvItemReader.nextItem()
     }
 
-    for (i <- 0 to instanceActors.size - 1) {
+    for (i <- 0 to k - 1) {
       instanceActors(i) ! SimulationDone
     }
   }
 
   override def receive: Receive = {
     case Load(index, x) => {
-      load += x
+      loads(index) = x
+      receivedLoad += 1
+      if (receivedLoad == k) {
+        log.info("received all loads")
+        for (i <- 0 to k - 1) {
+          log.info("instance " + i + " received " + loads(i) + " tuples")
+        }
+      }
     }
   }
 
