@@ -10,10 +10,10 @@ object Main {
   def main(args: Array[String]): Unit = {
     val system = ActorSystem()
 
-    val N = 3
-    val m = 5
-    val s = 3
-    val k = 5
+    val N = 1000
+    val m = 10000
+    val s = 2
+    val k = 3
     val epsilon = 0.05
     val theta = 0.01
 

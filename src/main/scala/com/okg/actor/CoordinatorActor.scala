@@ -32,15 +32,16 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
 
   when(WAIT_ALL) {
     case Event(sketch: Sketch, coordinatorStateData: CoordinatorStateData) => {
-      schedulerActors.incl(sender())
+      schedulerActors.+(sender())
       coordinatorStateData.sketches :+ (sketch)
 
       log.info("sketch size is: " + coordinatorStateData.sketches.size)
 
       if (coordinatorStateData.sketches.size == s) {
         goto(GENERATION) using (coordinatorStateData.copy(sketches = List.empty[Sketch]))
+      } else {
+        stay()
       }
-      stay()
     }
   }
 
@@ -52,8 +53,9 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
           log.error("next routing table is empty")
         }
         goto(WAIT_ALL) using (coordinatorStateData.copy(notifications = 0, currentRoutingTable = nextRoutingTable))
+      } else {
+        stay()
       }
-      stay()
     }
   }
 
@@ -76,7 +78,7 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
     var minLoad = Int.MaxValue
     var minIndex = -1
     for (i <- 0 to s - 1) {
-      if(buckets(i) < minLoad) {
+      if (buckets(i) < minLoad) {
         minLoad = buckets(i)
         minIndex = i
       }

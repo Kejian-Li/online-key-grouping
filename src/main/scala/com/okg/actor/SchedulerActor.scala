@@ -15,7 +15,7 @@ import org.apache.commons.math3.random.RandomDataGenerator
 
 import scala.collection.mutable
 
-class SchedulerActor(index: Int,  // index of this scheduler instance
+class SchedulerActor(index: Int, // index of this scheduler instance
                      N: Int, // number of received tuples before entering COLLECT state
                      m: Int, // number of received tuples
                      k: Int, // number of operator instance
@@ -28,7 +28,7 @@ class SchedulerActor(index: Int,  // index of this scheduler instance
 
   val schedulerStateDate = new SchedulerStateData(N,
     m,
-    0,  // n
+    0, // n
     k,
     new SpaceSaving(epsilon, theta),
     new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k)),
@@ -68,13 +68,15 @@ class SchedulerActor(index: Int,  // index of this scheduler instance
   when(HASH) {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
       schedulerStateData.n += 1
-      log.info("scheduler instance "+ index + " received a tuple, " + schedulerStateData.n + " tuples in total")
+      log.info("scheduler instance " + index + " received a tuple, " + schedulerStateData.n + " tuples in total")
       assignTuple(tuple, schedulerStateData.routingTable)
 
       if (schedulerStateData.n == N) {
+        log.info("gonna COLLECT state")
         goto(COLLECT) using (schedulerStateData.copy(n = 0))
+      } else {
+        stay()
       }
-      stay()
     }
   }
 
@@ -97,15 +99,17 @@ class SchedulerActor(index: Int,  // index of this scheduler instance
       val index = hash(key)
       schedulerStateData.sketch.A.update(index, schedulerStateData.sketch.A(index) + 1)
 
-      schedulerStateData.tupleQueue.addOne(tuple)
+      schedulerStateData.tupleQueue.+=(tuple)
 
       if (schedulerStateData.n == m) {
         val heavyHitters = schedulerStateData.spaceSaving.getHeavyHitters
-        updateSketch(heavyHitters, nextStateData.sketch)
+        updateSketch(heavyHitters, schedulerStateData.sketch)
 
+        log.info("gonna WAIT state")
         goto(WAIT)
+      } else {
+        stay()
       }
-      stay()
     }
   }
 
@@ -124,7 +128,7 @@ class SchedulerActor(index: Int,  // index of this scheduler instance
       schedulerStateData.spaceSaving.newSample(key)
       val index = hash(key)
       schedulerStateData.sketch.A.update(index, schedulerStateData.sketch.A(index) + 1)
-      schedulerStateData.tupleQueue.addOne(tuple)
+      schedulerStateData.tupleQueue.+=(tuple)
 
       stay()
     }
@@ -156,6 +160,7 @@ class SchedulerActor(index: Int,  // index of this scheduler instance
       nextStateData.sketch.map.clear()
       nextStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta))
 
+      log.info("send sketch")
       coordinatorActor ! nextStateData.sketch
     }
 
