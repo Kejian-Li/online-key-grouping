@@ -4,7 +4,7 @@ import akka.actor.FSM.{CurrentState, SubscribeTransitionCallBack, Transition}
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{TestKit, TestProbe}
 import com.okg.actor.{CoordinatorActor, InstanceActor, SchedulerActor}
-import com.okg.state.{COLLECT, HASH}
+import com.okg.state._
 import com.okg.tuple.Tuple
 import org.scalatest.WordSpecLike
 
@@ -34,16 +34,26 @@ class OKG_Test extends TestKit(ActorSystem("OKG")) with WordSpecLike {
           system.actorOf(Props(new SchedulerActor(i, N, m, k, epsilon, theta, coordinatorActorRef, instanceActors)))
       }
 
-      val stateProbe = TestProbe()
-      schedulerActors(0) ! new SubscribeTransitionCallBack(stateProbe.ref)
+      val firstSchedulerStateProbe = TestProbe()
+      schedulerActors(0) ! new SubscribeTransitionCallBack(firstSchedulerStateProbe.ref)
+      firstSchedulerStateProbe.expectMsg(new CurrentState(schedulerActors(0), HASH))
 
-      stateProbe.expectMsg(new CurrentState(schedulerActors(0), HASH))
+      val secondSchedulerStateProbe = TestProbe()
+      schedulerActors(1) ! new SubscribeTransitionCallBack(secondSchedulerStateProbe.ref)
+      secondSchedulerStateProbe.expectMsg(new CurrentState(schedulerActors(1), HASH))
+
+      val coordinatorStateProbe = TestProbe()
+      coordinatorActorRef ! new SubscribeTransitionCallBack(coordinatorStateProbe.ref)
+      coordinatorStateProbe.expectMsg(new CurrentState(coordinatorActorRef, WAIT_ALL))
+
 
       schedulerActors(0) ! new Tuple[Int](1)
       schedulerActors(0) ! new Tuple[Int](2)
       schedulerActors(0) ! new Tuple[Int](3)
 
-      stateProbe.expectMsg(new Transition(schedulerActors(0), HASH, COLLECT))
+      schedulerActors(1) ! new Tuple[Int](1)
+      schedulerActors(1) ! new Tuple[Int](2)
+      schedulerActors(1) ! new Tuple[Int](3)
 
       // HASH -> COLLECT
 
@@ -53,6 +63,19 @@ class OKG_Test extends TestKit(ActorSystem("OKG")) with WordSpecLike {
       schedulerActors(0) ! new Tuple[Int](7)
       schedulerActors(0) ! new Tuple[Int](8)
 
+      schedulerActors(1) ! new Tuple[Int](4)
+      schedulerActors(1) ! new Tuple[Int](5)
+      schedulerActors(1) ! new Tuple[Int](6)
+      schedulerActors(1) ! new Tuple[Int](7)
+      schedulerActors(1) ! new Tuple[Int](8)
+
+      firstSchedulerStateProbe.expectMsg(new Transition(schedulerActors(0), HASH, COLLECT))
+      firstSchedulerStateProbe.expectMsg(new Transition(schedulerActors(0), COLLECT, WAIT))
+
+      secondSchedulerStateProbe.expectMsg(new Transition(schedulerActors(1), HASH, COLLECT))
+      secondSchedulerStateProbe.expectMsg(new Transition(schedulerActors(1), COLLECT, WAIT))
+
+      coordinatorStateProbe.expectMsg(new Transition(coordinatorActorRef, WAIT_ALL, GENERATION))
 
       // COLLECT -> WAIT
       schedulerActors(0) ! new Tuple[Int](9)

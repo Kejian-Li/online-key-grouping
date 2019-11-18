@@ -33,14 +33,15 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
   when(WAIT_ALL) {
     case Event(sketch: Sketch, coordinatorStateData: CoordinatorStateData) => {
       schedulerActors.+(sender())
-      coordinatorStateData.sketches :+ (sketch)
+      log.info("received sketch from " + sender())
 
-      log.info("sketch size is: " + coordinatorStateData.sketches.size)
-
-      if (coordinatorStateData.sketches.size == s) {
-        goto(GENERATION) using (coordinatorStateData.copy(sketches = List.empty[Sketch]))
+      val newStateData = coordinatorStateData.copy(sketches = coordinatorStateData.sketches :+ sketch)
+      log.info("received sketch " + newStateData.sketches.size + " in total")
+      if (newStateData.sketches.size == s) {
+        log.info("gonna GENERATION state")
+        goto(GENERATION) using (newStateData)
       } else {
-        stay()
+        stay() using (newStateData)
       }
     }
   }
@@ -52,7 +53,10 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
         if (nextRoutingTable.map.isEmpty) { // sanity check
           log.error("next routing table is empty")
         }
-        goto(WAIT_ALL) using (coordinatorStateData.copy(notifications = 0, currentRoutingTable = nextRoutingTable))
+        goto(WAIT_ALL) using (coordinatorStateData.copy(
+          notifications = 0,
+          currentRoutingTable = nextRoutingTable,
+          sketches = List.empty[Sketch]))
       } else {
         stay()
       }
@@ -114,7 +118,7 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
           }
         )
 
-        for (i <- 0 to s) {
+        for (i <- 0 to s - 1) {
           buckets(i) += sketch.A(i)
         }
       }
