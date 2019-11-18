@@ -1,14 +1,14 @@
 package com.okg.actor
 
 import akka.actor.{Actor, ActorRef, FSM}
-import com.okg.message.{Done, MigrationCompleted, MigrationTable}
+import com.okg.message._
 import com.okg.state._
 import com.okg.tuple.{Tuple, TupleQueue}
 
 /**
   * Class for Operator instance
   */
-class InstanceActor extends Actor with FSM[InstanceState, InstanceStateData] {
+class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceStateData] {
 
   var coordinatorActorRef = Actor.noSender
   startWith(RUN, new InstanceStateData(0, new TupleQueue[Tuple[Int]]))
@@ -28,6 +28,13 @@ class InstanceActor extends Actor with FSM[InstanceState, InstanceStateData] {
   when(MIGRATION) {
     case Event(Done, data: InstanceStateData) => {
       goto(RUN)
+    }
+  }
+
+  whenUnhandled {
+    case Event(SimulationDone, data: InstanceStateData) => {
+      sender() ! new Load(index, data.tupleNums)
+      stay()
     }
   }
 

@@ -10,4 +10,4 @@ import com.okg.message.{RoutingTable, Sketch}
   */
 case class CoordinatorStateData(currentRoutingTable: RoutingTable,
                                 sketches: List[Sketch],
-                                notifications: Int)
+                                var notifications: Int)

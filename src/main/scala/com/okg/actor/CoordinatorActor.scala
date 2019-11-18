@@ -48,9 +48,9 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
 
   when(GENERATION) {
     case Event(MigrationCompleted, coordinatorStateData: CoordinatorStateData) => {
-      val newStateData = coordinatorStateData.copy(notifications = coordinatorStateData.notifications + 1)
+      coordinatorStateData.notifications += 1
 
-      if (newStateData.notifications == s) {
+      if (coordinatorStateData.notifications == s) {
         if (nextRoutingTable.map.isEmpty) { // sanity check
           log.error("next routing table is empty")
         }
