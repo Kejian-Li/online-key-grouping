@@ -12,7 +12,7 @@ import com.okg.tuple.{Tuple, TupleQueue}
   */
 class InstanceActor extends Actor with FSM[InstanceState, InstanceStateData] {
 
-  var coordinatorRef = Actor.noSender
+  var coordinatorActorRef = Actor.noSender
   startWith(RUN, new InstanceStateData(0, new TupleQueue[Tuple[Int]]))
 
   when(RUN) {
@@ -22,7 +22,7 @@ class InstanceActor extends Actor with FSM[InstanceState, InstanceStateData] {
     }
 
     case Event(migrationTable: MigrationTable, data: InstanceStateData) => {
-      coordinatorRef = sender()
+      coordinatorActorRef = sender()
       goto(MIGRATION)
     }
   }
@@ -36,11 +36,11 @@ class InstanceActor extends Actor with FSM[InstanceState, InstanceStateData] {
   onTransition {
     case RUN -> MIGRATION => {
       // migration procedure
-
+      
       self ! Done
     }
     case MIGRATION -> RUN => {
-      coordinatorRef ! MigrationCompleted
+      coordinatorActorRef ! MigrationCompleted
     }
   }
 }

@@ -67,8 +67,8 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
     case _ -> GENERATION => {
       nextRoutingTable = generateRoutingTable(nextStateData)
       val migrationTable = makeMigrationTable(nextRoutingTable)
-      schedulerActors.foreach(schedulerActor => {
-        schedulerActor ! migrationTable
+      instanceActors.foreach(instanceActor => {
+        instanceActor ! migrationTable
       })
     }
     case _ -> WAIT_ALL => {
@@ -129,8 +129,24 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
 
   // compare currentRoutingTable with nextRoutingTable to make migration table
   def makeMigrationTable(nextRoutingTable: RoutingTable) = {
+    val migrationTable = new MigrationTable(mutable.Map.empty[Int, Pair])
     val currentRoutingTable = nextStateData.currentRoutingTable
-
-    new MigrationTable(mutable.Map.empty[Int, Entry])
+    currentRoutingTable.map.foreach {
+      entry => {
+        if (nextRoutingTable.containsKey(entry._1)) {
+          val pair = new Pair(entry._2, nextRoutingTable.get(entry._1))
+          migrationTable.put(entry._1, pair)
+          nextRoutingTable.remove(entry._1)
+        } else {
+          migrationTable.put(entry._1, null)
+        }
+      }
+    }
+    nextRoutingTable.map.foreach {
+      entry => {
+        migrationTable.put(entry._1, new Pair(null, entry._2))
+      }
+    }
+    migrationTable
   }
 }

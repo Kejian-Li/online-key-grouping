@@ -2,6 +2,11 @@ package com.okg.message
 
 import scala.collection.mutable
 
-case class MigrationTable(map: mutable.Map[Int, Entry]) extends Message
+case class MigrationTable(map: mutable.Map[Int, Pair]) extends Message {
 
-case class Entry(key: Int, before: Int, after: Int)
+  def put(key: Int, pair: Pair): Unit = {
+    map.put(key, pair)
+  }
+}
+
+case class Pair(before: Int, after: Int)
