@@ -1,6 +1,7 @@
 package com.okg.actor
 
 import akka.actor.{Actor, ActorRef, FSM}
+import akka.japi.Option.Some
 import com.okg.message._
 import com.okg.state._
 
@@ -52,6 +53,8 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
       if (coordinatorStateData.notifications == s) {
         if (nextRoutingTable.map.isEmpty) { // sanity check
           log.error("next routing table is empty")
+        }else {
+          log.info("new routing table size is " + coordinatorStateData.currentRoutingTable.size())
         }
         goto(WAIT_ALL) using (
           new CoordinatorStateData(nextRoutingTable, List.empty[Sketch], 0))
@@ -88,8 +91,8 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
     minIndex
   }
 
-  // build mapping and return routing table
-  def buildGlobalMappingFunction(heavyHitters: mutable.Map[Int, Int],
+  // build global mapping and return routing table
+  def buildGlobalMappingFunction(heavyHitters: Map[Int, Int],
                                  buckets: Array[Int]) = {
     val heavyHittersMapping = mutable.Map.empty[Int, Int]
     heavyHitters.foreach(
@@ -100,19 +103,20 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
       }
     )
     log.info("build global mapping function successfully")
+    log.info("next routing table size is: " + heavyHittersMapping.size)
     new RoutingTable(heavyHittersMapping)
   }
 
   // generate a new routing table
   def generateRoutingTable(coordinatorStateData: CoordinatorStateData): RoutingTable = {
-    val heavyHitters = mutable.TreeMap.empty[Int, Int]
+    val heavyHittersMap = mutable.TreeMap.empty[Int, Int]
     val buckets = new Array[Int](s)
     coordinatorStateData.sketches.foreach(
       sketch => {
 
         sketch.map.foreach(
           entry => {
-            heavyHitters.put(entry._1, heavyHitters.getOrElse(entry._1, 0) + entry._2)
+            heavyHittersMap.put(entry._1, heavyHittersMap.getOrElse(entry._1, 0) + entry._2)
           }
         )
 
@@ -122,29 +126,41 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
       }
     )
 
-    buildGlobalMappingFunction(heavyHitters, buckets)
+    val descendingHeavyHittersMap = heavyHittersMap.toSeq.sortWith(_._2 > _._2).toMap
+
+    buildGlobalMappingFunction(descendingHeavyHittersMap, buckets)
   }
 
   // compare currentRoutingTable with nextRoutingTable to make migration table
   def makeMigrationTable(nextRoutingTable: RoutingTable) = {
+
     val migrationTable = new MigrationTable(mutable.Map.empty[Int, Pair])
     val currentRoutingTable = nextStateData.currentRoutingTable
+
     currentRoutingTable.map.foreach {
       entry => {
-        if (nextRoutingTable.containsKey(entry._1)) {
-          val pair = new Pair(entry._2, nextRoutingTable.get(entry._1))
-          migrationTable.put(entry._1, pair)
-          nextRoutingTable.remove(entry._1)
-        } else {
-          migrationTable.put(entry._1, null)
+        val key = entry._1
+        if (nextRoutingTable.contains(key)) {     // 1. both contain
+          val after = nextRoutingTable.get(key)
+          val pair = new Pair(Some(entry._2), Some(after))
+
+          migrationTable.put(key, pair)
+        } else {                                  // 2. the old contains but the new doesn't
+          migrationTable.put(key, new Pair(Some(entry._2), None))
         }
       }
     }
+
     nextRoutingTable.map.foreach {
       entry => {
-        migrationTable.put(entry._1, new Pair(null, entry._2))
+        val key = entry._1
+        if (!currentRoutingTable.contains(key)) {   // 3. the new contains but the old doesn't
+          migrationTable.put(key, new Pair(None, Some(entry._2)))
+        }
       }
     }
+
+    log.info("next migration table size is: " + migrationTable.map.size)
     migrationTable
   }
 }

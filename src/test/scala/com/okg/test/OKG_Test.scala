@@ -24,7 +24,7 @@ class OKG_Test extends TestKit(ActorSystem("OKG")) with WordSpecLike {
 
       val instanceActors = new Array[ActorRef](k)
       for (i <- 0 to k - 1) {
-        instanceActors(i) = system.actorOf(Props(new InstanceActor()))
+        instanceActors(i) = system.actorOf(Props(new InstanceActor(i)))
       }
 
       val coordinatorActorRef = system.actorOf(Props(new CoordinatorActor(instanceActors, s, k)))

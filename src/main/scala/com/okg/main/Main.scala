@@ -2,6 +2,7 @@ package com.okg.main
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import com.okg.actor.{CoordinatorActor, InstanceActor, SchedulerActor}
+import com.okg.message.StartSimulation
 
 object Main {
 
@@ -30,9 +31,9 @@ object Main {
         system.actorOf(Props(new SchedulerActor(i, N, m, k, epsilon, theta, coordinatorActorRef, instanceActors)))
     }
 
-    val simulationActor = new SimulationActor(coordinatorActorRef, schedulerActors, instanceActors)
+    val simulationActor = system.actorOf(Props(new SimulationActor(coordinatorActorRef, schedulerActors, instanceActors)))
 
-    simulationActor.startSimulation()
+    simulationActor ! StartSimulation
   }
 
 }

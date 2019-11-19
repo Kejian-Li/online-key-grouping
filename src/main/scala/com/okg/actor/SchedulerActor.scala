@@ -55,7 +55,7 @@ class SchedulerActor(index: Int, // index of this scheduler instance
   def assignTuple(tuple: Tuple[Int], routingTable: RoutingTable) = {
     var index = -1
     val key = tuple.key
-    if (routingTable.containsKey(key)) {
+    if (routingTable.contains(key)) {
       index = routingTable.get(key)
     } else {
       index = hash(key)

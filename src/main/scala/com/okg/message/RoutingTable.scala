@@ -8,12 +8,16 @@ case class RoutingTable(map: mutable.Map[Int, Int]) extends Message {
     map.get(key).get
   }
 
-  def containsKey(key: Int) = {
+  def contains(key: Int) = {
     map.contains(key)
   }
 
-  def remove(key: Int): Unit = {
+  def remove(key: Int) = {
     map -= key
+  }
+
+  def size() = {
+    map.size
   }
 }
 
