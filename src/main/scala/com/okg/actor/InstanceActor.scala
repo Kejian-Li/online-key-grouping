@@ -21,7 +21,7 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
     case Event(tuple: Tuple[Int], data: InstanceStateData) => {
       // enqueue tuple
       val key = tuple.key
-      data.tupleMap.update(key, data.tupleMap.getOrElse(key, 0) + 1)
+      data.tupleMap.update(key, data.tupleMap.getOrElse(key, 0) + 1)   // virtual, no real meaning
       stay() using (data.copy(tupleNums = data.tupleNums + 1))
     }
 
@@ -47,8 +47,7 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
 
   onTransition {
     case RUN -> MIGRATION => {
-      // migration procedure
-      
+      // migration procedure. it is omitted. we simply suppose that migration is completed
       self ! Done
     }
     case MIGRATION -> RUN => {

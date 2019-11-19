@@ -4,7 +4,10 @@ import scala.collection.mutable
 
 /**
   *
-  * @param tupleNums number of received tuples in total
-  * @param tupleMap  map form received keys to their frequencies
+  * @param tupleNums Number of received tuples in total
+  * @param tupleMap  Map form received keys to their frequencies, it represents states of keys and it is virtual.
+  *                  As different operators own different states. So we don't actually migrate this map
+  *                  between instances of the operator. We just simply suppose that migration is completed and
+  *                  schedulers use new routing table to assign tuples in the next period.
   */
 case class InstanceStateData(tupleNums: Int, tupleMap: mutable.Map[Int, Int])

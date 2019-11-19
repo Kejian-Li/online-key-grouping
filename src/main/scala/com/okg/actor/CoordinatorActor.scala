@@ -112,7 +112,7 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
 
         sketch.map.foreach(
           entry => {
-            heavyHitters.update(entry._1, heavyHitters.getOrElse(entry._1, 0) + entry._2)
+            heavyHitters.put(entry._1, heavyHitters.getOrElse(entry._1, 0) + entry._2)
           }
         )
 
