@@ -1,5 +1,10 @@
 package com.okg.state
 
-import com.okg.tuple.{Tuple, TupleQueue}
+import scala.collection.mutable
 
-case class InstanceStateData(tupleNums: Int, tupleQueue: TupleQueue[Tuple[Int]])
+/**
+  *
+  * @param tupleNums number of received tuples in total
+  * @param tupleMap  map form received keys to their frequencies
+  */
+case class InstanceStateData(tupleNums: Int, tupleMap: mutable.Map[Int, Int])

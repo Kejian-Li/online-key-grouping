@@ -3,7 +3,6 @@ package com.okg.actor
 import akka.actor.{Actor, ActorRef, FSM}
 import com.okg.message._
 import com.okg.state._
-import com.okg.tuple.TupleQueue
 
 import scala.collection.mutable
 
@@ -63,14 +62,14 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
   }
 
   onTransition {
-    case _ -> GENERATION => {
+    case WAIT_ALL -> GENERATION => {
       nextRoutingTable = generateRoutingTable(nextStateData)
       val migrationTable = makeMigrationTable(nextRoutingTable)
       instanceActors.foreach(instanceActor => {
-        instanceActor ! migrationTable
+        instanceActor ! new StartMigration(instanceActors, migrationTable)
       })
     }
-    case _ -> WAIT_ALL => {
+    case GENERATION -> WAIT_ALL => {
       schedulerActors.foreach(schedulerActor => {
         schedulerActor ! new StartAssignment(nextRoutingTable)
       })
@@ -113,7 +112,7 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
 
         sketch.map.foreach(
           entry => {
-            heavyHitters.put(entry._1, heavyHitters.getOrElse(entry._1, 0) + entry._2)
+            heavyHitters.update(entry._1, heavyHitters.getOrElse(entry._1, 0) + entry._2)
           }
         )
 
