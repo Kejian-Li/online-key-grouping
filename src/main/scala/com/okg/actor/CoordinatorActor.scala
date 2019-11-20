@@ -51,10 +51,10 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
       coordinatorStateData.migrationCompletedNotifications += 1
 
       if (coordinatorStateData.migrationCompletedNotifications == k) {
-        if (nextRoutingTable.map.isEmpty) { // sanity check
+        if (nextRoutingTable.isEmpty) { // sanity check
           log.error("Coordinator: next routing table is empty")
         } else {
-          log.info("Coordinator: new routing table size is " + coordinatorStateData.currentRoutingTable.size())
+          log.info("Coordinator: new routing table size is " + nextRoutingTable.size())
         }
         goto(WAIT_ALL) using (
           new CoordinatorStateData(nextRoutingTable, List.empty[Sketch], 0))
@@ -106,14 +106,15 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
   }
 
   // build global mapping and return routing table
-  def buildGlobalMappingFunction(heavyHitters: Map[Int, Int],
+  def buildGlobalMappingFunction(heavyHitters: Seq[(Int, Int)],    //  (key, frequency)
                                  buckets: Array[Int]) = {
     val heavyHittersMapping = mutable.Map.empty[Int, Int]
     heavyHitters.foreach(
       entry => {
-        val index = findLeastLoad(buckets)
-        buckets.update(index, buckets(index) + heavyHitters.get(entry._1).get)
-        heavyHittersMapping.put(entry._1, index)
+        val key = entry._1
+        val leastIndex = findLeastLoad(buckets)
+        buckets.update(leastIndex, buckets(leastIndex) + entry._2)
+        heavyHittersMapping.put(key, leastIndex)
       }
     )
     log.info("Coordinator: build global mapping function successfully")
@@ -125,6 +126,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
   def generateRoutingTable(coordinatorStateData: CoordinatorStateData): RoutingTable = {
     val cumulativeHeavyHittersMap = mutable.TreeMap.empty[Int, Int]
     val cumulativeBuckets = new Array[Int](k)
+
     coordinatorStateData.sketches.foreach(
       sketch => {
 
@@ -141,24 +143,16 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
       }
     )
 
-    assert(cumulativeHeavyHittersMap.size != 0)
-
-    cumulativeHeavyHittersMap.foreach {
-      entry => {
-        log.info("Coordinator: cumulative heavy hitters: " + entry._1 + " -> " + entry._2)
-      }
-    }
-
     for (i <- 0 to k - 1) {
       log.info("Coordinator: buckets " + i + " owns " + cumulativeBuckets(i) + " tuples")
     }
 
-    val descendingHeavyHittersMap = cumulativeHeavyHittersMap.toSeq.sortWith(_._2 > _._2).toMap
+    val descendingHeavyHittersMap = cumulativeHeavyHittersMap.toSeq.sortWith(_._2 > _._2)
 
-    val it = descendingHeavyHittersMap.iterator
-    while (it.hasNext) {
-      val entry = it.next()
-      log.info(entry._1 + " " + entry._2)
+    descendingHeavyHittersMap.foreach{
+      entry => {
+        log.info(entry._1 + "  " + entry._2)
+      }
     }
 
     buildGlobalMappingFunction(descendingHeavyHittersMap, cumulativeBuckets)
@@ -193,7 +187,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
       }
     }
 
-    log.info("Coordinator: make next migration table successfully, its size is: " + migrationTable.map.size)
+    log.info("Coordinator: make next migration table successfully, its size is: " + migrationTable.size)
     migrationTable
   }
 }

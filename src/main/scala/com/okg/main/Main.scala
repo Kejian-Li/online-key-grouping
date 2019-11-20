@@ -13,7 +13,7 @@ object Main {
     val s = 2
     val k = 3
     val epsilon = 0.05
-    val theta = 0.0001
+    val theta = 0.01
 
     val system = ActorSystem()
 

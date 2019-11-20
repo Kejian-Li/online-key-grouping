@@ -11,6 +11,10 @@ case class MigrationTable(map: mutable.Map[Int, Pair]) extends Message {
   def put(key: Int, pair: Pair) = {
     map.put(key, pair)
   }
+
+  def size() = {
+    map.size
+  }
 }
 
 case class Pair(before: Option[Int], after: Option[Int])

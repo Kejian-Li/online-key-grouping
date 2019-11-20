@@ -19,6 +19,10 @@ case class RoutingTable(map: mutable.Map[Int, Int]) extends Message {
   def size() = {
     map.size
   }
+
+  def isEmpty() = {
+    map.isEmpty
+  }
 }
 
 object RoutingTable {

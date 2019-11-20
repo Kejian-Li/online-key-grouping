@@ -169,14 +169,8 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
   onTransition {
     case _ -> WAIT => {
-      nextStateData.sketch.heavyHitters.foreach {
-        entry => {
-          log.info("Scheduler " + index + " owns heavy hitters: " + entry._1 + " -> " + entry._2)
-        }
-      }
-
       log.info("Scheduler instance " + index + " send sketch successfully")
-      coordinatorActor ! nextStateData.sketch
+      coordinatorActor ! new Sketch(nextStateData.sketch.heavyHitters.clone(), nextStateData.sketch.buckets)
 
       // clear
       nextStateData.copy(n = 0)
