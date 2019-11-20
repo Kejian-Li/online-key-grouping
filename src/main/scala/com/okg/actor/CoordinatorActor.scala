@@ -96,7 +96,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
   def findLeastLoad(buckets: Array[Int]): Int = {
     var minLoad = Int.MaxValue
     var minIndex = -1
-    for (i <- 0 to s - 1) {
+    for (i <- 0 to buckets.length - 1) {
       if (buckets(i) < minLoad) {
         minLoad = buckets(i)
         minIndex = i
@@ -114,11 +114,16 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
         val key = entry._1
         val leastIndex = findLeastLoad(buckets)
         buckets.update(leastIndex, buckets(leastIndex) + entry._2)
+        log.info("Coordinator: buckets " + leastIndex + " owns " + buckets(leastIndex) + " tuples")
         heavyHittersMapping.put(key, leastIndex)
       }
     )
     log.info("Coordinator: build global mapping function successfully")
     log.info("Coordinator: next routing table size is: " + heavyHittersMapping.size)
+
+    for (i <- 0 to buckets.length - 1) {
+      log.info("Coordinator: buckets " + i + " owns " + buckets(i) + " tuples")
+    }
     new RoutingTable(heavyHittersMapping)
   }
 
