@@ -6,8 +6,8 @@ import com.okg.message.{RoutingTable, Sketch}
   *
   * @param routingTable
   * @param sketches
-  * @param notifications  number of notifications Operator instances send
+  * @param migrationCompletedNotifications  number of completed migration notifications Operator instances send
   */
 case class CoordinatorStateData(currentRoutingTable: RoutingTable,
                                 sketches: List[Sketch],
-                                var notifications: Int)
+                                var migrationCompletedNotifications: Int)

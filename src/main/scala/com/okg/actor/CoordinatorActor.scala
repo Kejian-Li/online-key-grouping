@@ -15,12 +15,12 @@ import scala.collection.mutable
   * @param s
   * @param k
   */
-case class CoordinatorActor(s: Int,   // number of Scheduler instances
+case class CoordinatorActor(s: Int, // number of Scheduler instances
                             instanceActors: Array[ActorRef])
   extends Actor with FSM[CoordinatorState, CoordinatorStateData] {
 
   val k = instanceActors.size
-  val schedulerActorsSet = Set.empty[ActorRef]
+  val schedulerActorsSet = mutable.Set.empty[ActorRef]
   var nextRoutingTable = new RoutingTable(mutable.Map.empty[Int, Int]) // empty routing table
 
   val coordinatorStateData = new CoordinatorStateData(
@@ -48,12 +48,12 @@ case class CoordinatorActor(s: Int,   // number of Scheduler instances
 
   when(GENERATION) {
     case Event(MigrationCompleted, coordinatorStateData: CoordinatorStateData) => {
-      coordinatorStateData.notifications += 1
+      coordinatorStateData.migrationCompletedNotifications += 1
 
-      if (coordinatorStateData.notifications == s) {
+      if (coordinatorStateData.migrationCompletedNotifications == k) {
         if (nextRoutingTable.map.isEmpty) { // sanity check
           log.error("Coordinator: next routing table is empty")
-        }else {
+        } else {
           log.info("Coordinator: new routing table size is " + coordinatorStateData.currentRoutingTable.size())
         }
         goto(WAIT_ALL) using (
@@ -66,10 +66,11 @@ case class CoordinatorActor(s: Int,   // number of Scheduler instances
 
   whenUnhandled {
     case Event(StartSimulation, coordinatorStateData: CoordinatorStateData) => {
-      schedulerActorsSet.+(sender())
-      if(schedulerActorsSet.size == s) {
+      schedulerActorsSet.add(sender())
+
+      if (schedulerActorsSet.size == s) {
         for (i <- 0 to k - 1) {
-          log.info("Coordinator: register myself at the instances of the Operator")
+          log.info("Coordinator: register myself at the instance " + i + " of the Operator")
           instanceActors(i) ! CoordinatorRegistration
         }
       }
@@ -153,12 +154,12 @@ case class CoordinatorActor(s: Int,   // number of Scheduler instances
     currentRoutingTable.map.foreach {
       entry => {
         val key = entry._1
-        if (nextRoutingTable.contains(key)) {     // 1. both contain
+        if (nextRoutingTable.contains(key)) { // 1. both contain
           val after = nextRoutingTable.get(key)
           val pair = new Pair(Some(entry._2), Some(after))
 
           migrationTable.put(key, pair)
-        } else {                                  // 2. the old contains but the new doesn't
+        } else { // 2. the old contains but the new doesn't
           migrationTable.put(key, new Pair(Some(entry._2), None))
         }
       }
@@ -167,7 +168,7 @@ case class CoordinatorActor(s: Int,   // number of Scheduler instances
     nextRoutingTable.map.foreach {
       entry => {
         val key = entry._1
-        if (!currentRoutingTable.contains(key)) {   // 3. the new contains but the old doesn't
+        if (!currentRoutingTable.contains(key)) { // 3. the new contains but the old doesn't
           migrationTable.put(key, new Pair(None, Some(entry._2)))
         }
       }

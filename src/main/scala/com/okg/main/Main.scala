@@ -8,7 +8,7 @@ object Main {
 
   def main(args: Array[String]): Unit = {
 
-    val N = 1000
+    val N = 10
     val m = 10000
     val s = 2
     val k = 3

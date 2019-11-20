@@ -32,16 +32,16 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
   }
 
   when(MIGRATION) {
-    case Event(Done, data: InstanceStateData) => {
+    case Event(AssignmentCompleted, data: InstanceStateData) => {
       goto(RUN)
     }
   }
 
-  val schedulerActorsSet = Set.empty[ActorRef]
+  val schedulerActorsSet = mutable.Set.empty[ActorRef]
   var receivedTerminationNotification = 0
   whenUnhandled {
     case Event(StartSimulation, data: InstanceStateData) => {
-      schedulerActorsSet.+(sender())
+      schedulerActorsSet.add(sender())
       stay()
     }
     case Event(CoordinatorRegistration, data: InstanceStateData) => {
@@ -61,7 +61,7 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
   onTransition {
     case RUN -> MIGRATION => {
       // migration procedure. it is omitted. we simply suppose that migration is completed
-      self ! Done
+      self ! AssignmentCompleted
     }
     case MIGRATION -> RUN => {
       coordinatorActorRef ! MigrationCompleted

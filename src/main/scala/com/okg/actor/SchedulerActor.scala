@@ -53,14 +53,15 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   }
 
   def assignTuple(tuple: Tuple[Int], routingTable: RoutingTable) = {
-    var index = -1
+    var targetIndex = -1
     val key = tuple.key
     if (routingTable.contains(key)) {
-      index = routingTable.get(key)
+      targetIndex = routingTable.get(key)
     } else {
-      index = hash(key)
+      targetIndex = hash(key)
     }
-    instanceActors(index) ! tuple
+    log.info("Scheduler " + index + " assigns tuple to target Operator instance " + targetIndex)
+    instanceActors(targetIndex) ! tuple
   }
 
   when(HASH) {
@@ -147,17 +148,20 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   }
 
   def assign(tupleQueue: TupleQueue[Tuple[Int]], routingTable: RoutingTable) = {
+    var x = 0
     var tuple = tupleQueue.head
     tupleQueue.drop(1)
-    while (tuple != null) {
+    while (x <= m) {   // m is a period
       assignTuple(tuple, routingTable)
       tuple = tupleQueue.head
       tupleQueue.drop(1)
+      x += 1
     }
   }
 
   when(ASSIGN) {
-    case Event(Done, schedulerStateData: SchedulerStateData) => {
+    case Event(AssignmentCompleted, schedulerStateData: SchedulerStateData) => {
+      log.info("Scheduler " + index + " is gonna COLLECT state")
       goto(COLLECT)
     }
   }
@@ -178,7 +182,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
     case _ -> ASSIGN => {
       assign(nextStateData.tupleQueue, nextStateData.routingTable)
-      self ! Done // assignment is completed
+      self ! AssignmentCompleted // assignment in each period is completed
     }
   }
 
