@@ -28,6 +28,11 @@ class SimulationActor(coordinatorActor: ActorRef,
     var item = csvItemReader.nextItem()
     var sourceIndex = 0
 
+    // Simulation starts...
+    for (i <- 0 to s - 1) {
+      schedulerActors(i) ! StartSimulation
+    }
+
     while (item != null) {
       for (i <- 0 to item.size - 1) {
         schedulerActors(sourceIndex) ! new Tuple[Int](item(i).toInt)
@@ -40,6 +45,7 @@ class SimulationActor(coordinatorActor: ActorRef,
       item = csvItemReader.nextItem()
     }
 
+    // Simulation terminates...
     for (i <- 0 to s - 1) {
       schedulerActors(i) ! TerminateSimulation
     }
@@ -48,9 +54,6 @@ class SimulationActor(coordinatorActor: ActorRef,
   override def receive: Receive = {
     case StartSimulation => {
       log.info("Simulation starts...")
-      for (i <- 0 to s - 1) {
-        schedulerActors(i) ! StartSimulation
-      }
       startSimulation()
     }
 

@@ -24,7 +24,7 @@ object Main {
       instanceActors(i) = system.actorOf(Props(new InstanceActor(i)))
     }
 
-    val coordinatorActorRef = system.actorOf(Props(new CoordinatorActor(instanceActors, s, k)))
+    val coordinatorActorRef = system.actorOf(Props(new CoordinatorActor(s, instanceActors)))
 
     for (i <- 0 to s - 1) {
       schedulerActors(i) =

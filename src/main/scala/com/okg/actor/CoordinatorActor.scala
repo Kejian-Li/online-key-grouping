@@ -15,11 +15,11 @@ import scala.collection.mutable
   * @param s
   * @param k
   */
-case class CoordinatorActor(instanceActors: Array[ActorRef],
-                            s: Int, // number of scheduler instances
-                            k: Int) // number of operator instances
+case class CoordinatorActor(s: Int,   // number of Scheduler instances
+                            instanceActors: Array[ActorRef])
   extends Actor with FSM[CoordinatorState, CoordinatorStateData] {
 
+  val k = instanceActors.size
   val schedulerActorsSet = Set.empty[ActorRef]
   var nextRoutingTable = new RoutingTable(mutable.Map.empty[Int, Int]) // empty routing table
 
@@ -67,8 +67,11 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
   whenUnhandled {
     case Event(StartSimulation, coordinatorStateData: CoordinatorStateData) => {
       schedulerActorsSet.+(sender())
-      for (i <- 0 to instanceActors.size) {
-        instanceActors(i) ! CoordinatorRegistration
+      if(schedulerActorsSet.size == s) {
+        for (i <- 0 to k - 1) {
+          log.info("Coordinator: register myself at the instances of the Operator")
+          instanceActors(i) ! CoordinatorRegistration
+        }
       }
       stay()
     }

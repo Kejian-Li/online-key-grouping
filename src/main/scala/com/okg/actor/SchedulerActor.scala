@@ -15,10 +15,10 @@ import org.apache.commons.math3.random.RandomDataGenerator
 
 import scala.collection.mutable
 
-class SchedulerActor(index: Int, // index of this scheduler instance
+class SchedulerActor(index: Int, // index of this Scheduler instance
                      N: Int, // number of received tuples before entering COLLECT state
                      m: Int, // number of received tuples
-                     k: Int, // number of operator instances
+                     k: Int, // number of Operator instances
                      epsilon: Double,
                      theta: Double,
                      coordinatorActor: ActorRef,
@@ -119,10 +119,11 @@ class SchedulerActor(index: Int, // index of this scheduler instance
 
   whenUnhandled {
     case Event(StartSimulation, schedulerStateData: SchedulerStateData) => {
-      for (i <- 0 to instanceActors.size - 1) {
+      coordinatorActor ! StartSimulation
+
+      for (i <- 0 to k - 1) {
         instanceActors(i) ! StartSimulation
       }
-      coordinatorActor ! StartSimulation
       stay()
     }
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
