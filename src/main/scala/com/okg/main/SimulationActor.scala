@@ -2,7 +2,7 @@ package com.okg.main
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import com.csvreader.CsvReader
-import com.okg.message.{Load, SimulationDone, StartSimulation}
+import com.okg.message.{Load, StartSimulation, TerminateSimulation}
 import com.okg.tuple.Tuple
 
 /**
@@ -40,15 +40,19 @@ class SimulationActor(coordinatorActor: ActorRef,
     }
 
     for (i <- 0 to k - 1) {
-      instanceActors(i) ! SimulationDone
+      schedulerActors(i) ! TerminateSimulation
     }
   }
 
   override def receive: Receive = {
     case StartSimulation => {
       log.info("Simulation starts...")
+      for (i <- 0 to k - 1) {
+        schedulerActors(i) ! StartSimulation
+      }
       startSimulation()
     }
+
     case Load(index, x) => {
       loads(index) = x
       receivedLoad += 1

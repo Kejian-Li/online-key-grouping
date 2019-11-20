@@ -21,12 +21,11 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
     case Event(tuple: Tuple[Int], data: InstanceStateData) => {
       // enqueue tuple
       val key = tuple.key
-      data.tupleMap.update(key, data.tupleMap.getOrElse(key, 0) + 1)   // virtual, no real meaning
+      data.tupleMap.update(key, data.tupleMap.getOrElse(key, 0) + 1) // virtual, no real meaning
       stay() using (data.copy(tupleNums = data.tupleNums + 1))
     }
 
     case Event(startMigration: StartMigration, data: InstanceStateData) => {
-      coordinatorActorRef = sender()
       instanceActors = startMigration.instanceActors
       goto(MIGRATION)
     }
@@ -38,9 +37,19 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
     }
   }
 
+  val schedulerActorSet = Set.empty[ActorRef]
+  var receivedTerminationNotification = 0
   whenUnhandled {
-    case Event(SimulationDone, data: InstanceStateData) => {
-      sender() ! new Load(index, data.tupleNums)
+    case Event(StartSimulation, data: InstanceStateData) => {
+      schedulerActorSet.+(sender())
+      stay()
+    }
+
+    case Event(TerminateSimulation, data: InstanceStateData) => {
+      receivedTerminationNotification += 1
+      if (receivedTerminationNotification == schedulerActorSet.size) {
+        sender() ! new Load(index, data.tupleNums) // tell simulation actor statistics
+      }
       stay()
     }
   }

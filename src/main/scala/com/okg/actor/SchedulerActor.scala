@@ -18,7 +18,7 @@ import scala.collection.mutable
 class SchedulerActor(index: Int, // index of this scheduler instance
                      N: Int, // number of received tuples before entering COLLECT state
                      m: Int, // number of received tuples
-                     k: Int, // number of operator instance
+                     k: Int, // number of operator instances
                      epsilon: Double,
                      theta: Double,
                      coordinatorActor: ActorRef,
@@ -89,7 +89,6 @@ class SchedulerActor(index: Int, // index of this scheduler instance
 
   when(COLLECT) {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
-      log.info("now in the COLLECT state")
       schedulerStateData.n += 1
 
       val key = tuple.key
@@ -119,6 +118,12 @@ class SchedulerActor(index: Int, // index of this scheduler instance
   }
 
   whenUnhandled {
+    case Event(StartSimulation, schedulerStateData: SchedulerStateData) => {
+      for (i <- 0 to instanceActors.size - 1) {
+        instanceActors(i) ! StartSimulation
+      }
+      stay()
+    }
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
       schedulerStateData.n += 1
 
@@ -128,6 +133,13 @@ class SchedulerActor(index: Int, // index of this scheduler instance
       schedulerStateData.sketch.A.update(index, schedulerStateData.sketch.A(index) + 1)
       schedulerStateData.tupleQueue.+=(tuple)
 
+      stay()
+    }
+
+    case Event(TerminateSimulation, schedulerStateData: SchedulerStateData) => {
+      for (i <- 1 to instanceActors.size - 1) {
+        instanceActors(i) forward (TerminateSimulation)   // forward termination notification to instances
+      }
       stay()
     }
   }
