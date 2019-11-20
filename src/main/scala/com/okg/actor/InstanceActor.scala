@@ -26,6 +26,7 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
     }
 
     case Event(startMigration: StartMigration, data: InstanceStateData) => {
+      coordinatorActorRef = sender()
       instanceActors = startMigration.instanceActors
       goto(MIGRATION)
     }

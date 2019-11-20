@@ -16,6 +16,7 @@ class SimulationActor(coordinatorActor: ActorRef,
                       schedulerActors: Array[ActorRef],
                       instanceActors: Array[ActorRef]) extends Actor with ActorLogging {
 
+  val s = schedulerActors.size
   val k = instanceActors.size
   var loads = new Array[Int](k)
   var receivedLoad = 0
@@ -32,14 +33,14 @@ class SimulationActor(coordinatorActor: ActorRef,
         schedulerActors(sourceIndex) ! new Tuple[Int](item(i).toInt)
 
         sourceIndex += 1
-        if (sourceIndex == schedulerActors.size) {
+        if (sourceIndex == s) {
           sourceIndex = 0
         }
       }
       item = csvItemReader.nextItem()
     }
 
-    for (i <- 0 to k - 1) {
+    for (i <- 0 to s - 1) {
       schedulerActors(i) ! TerminateSimulation
     }
   }
@@ -47,7 +48,7 @@ class SimulationActor(coordinatorActor: ActorRef,
   override def receive: Receive = {
     case StartSimulation => {
       log.info("Simulation starts...")
-      for (i <- 0 to k - 1) {
+      for (i <- 0 to s - 1) {
         schedulerActors(i) ! StartSimulation
       }
       startSimulation()
