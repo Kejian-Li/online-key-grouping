@@ -8,12 +8,12 @@ object Main {
 
   def main(args: Array[String]): Unit = {
 
-    val N = 10
-    val m = 10000
+    val N = 100
+    val m = 1000
     val s = 2
     val k = 3
     val epsilon = 0.05
-    val theta = 0.01
+    val theta = 0.0001
 
     val system = ActorSystem()
 

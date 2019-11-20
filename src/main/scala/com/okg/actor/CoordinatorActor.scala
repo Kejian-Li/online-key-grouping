@@ -123,26 +123,45 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
 
   // generate a new routing table
   def generateRoutingTable(coordinatorStateData: CoordinatorStateData): RoutingTable = {
-    val heavyHittersMap = mutable.TreeMap.empty[Int, Int]
-    val buckets = new Array[Int](s)
+    val cumulativeHeavyHittersMap = mutable.TreeMap.empty[Int, Int]
+    val cumulativeBuckets = new Array[Int](k)
     coordinatorStateData.sketches.foreach(
       sketch => {
 
-        sketch.map.foreach(
+        sketch.heavyHitters.foreach(
           entry => {
-            heavyHittersMap.put(entry._1, heavyHittersMap.getOrElse(entry._1, 0) + entry._2)
+            val lastValue = cumulativeHeavyHittersMap.getOrElse(entry._1, 0)
+            cumulativeHeavyHittersMap.update(entry._1, lastValue + entry._2)
           }
         )
 
-        for (i <- 0 to s - 1) {
-          buckets(i) += sketch.A(i)
+        for (i <- 0 to k - 1) {
+          cumulativeBuckets(i) += sketch.buckets(i)
         }
       }
     )
 
-    val descendingHeavyHittersMap = heavyHittersMap.toSeq.sortWith(_._2 > _._2).toMap
+    assert(cumulativeHeavyHittersMap.size != 0)
 
-    buildGlobalMappingFunction(descendingHeavyHittersMap, buckets)
+    cumulativeHeavyHittersMap.foreach {
+      entry => {
+        log.info("Coordinator: cumulative heavy hitters: " + entry._1 + " -> " + entry._2)
+      }
+    }
+
+    for (i <- 0 to k - 1) {
+      log.info("Coordinator: buckets " + i + " owns " + cumulativeBuckets(i) + " tuples")
+    }
+
+    val descendingHeavyHittersMap = cumulativeHeavyHittersMap.toSeq.sortWith(_._2 > _._2).toMap
+
+    val it = descendingHeavyHittersMap.iterator
+    while (it.hasNext) {
+      val entry = it.next()
+      log.info(entry._1 + " " + entry._2)
+    }
+
+    buildGlobalMappingFunction(descendingHeavyHittersMap, cumulativeBuckets)
   }
 
   // compare currentRoutingTable with nextRoutingTable to make migration table

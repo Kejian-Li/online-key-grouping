@@ -84,7 +84,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
     while (it.hasNext) {
       val entry = it.next()
-      sketch.map.put(entry.getKey, entry.getValue)
+      sketch.heavyHitters.put(entry.getKey, entry.getValue)
     }
   }
 
@@ -95,7 +95,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       val key = tuple.key
       schedulerStateData.spaceSaving.newSample(key)
       val index = hash(key)
-      schedulerStateData.sketch.A.update(index, schedulerStateData.sketch.A(index) + 1)
+      schedulerStateData.sketch.buckets.update(index, schedulerStateData.sketch.buckets(index) + 1)
 
       schedulerStateData.tupleQueue.+=(tuple)
 
@@ -108,6 +108,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       } else {
         stay()
       }
+
     }
   }
 
@@ -133,7 +134,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       val key = tuple.key
       schedulerStateData.spaceSaving.newSample(key)
       val index = hash(key)
-      schedulerStateData.sketch.A.update(index, schedulerStateData.sketch.A(index) + 1)
+      schedulerStateData.sketch.buckets.update(index, schedulerStateData.sketch.buckets(index) + 1)
       schedulerStateData.tupleQueue.+=(tuple)
 
       stay()
@@ -151,7 +152,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     var x = 0
     var tuple = tupleQueue.head
     tupleQueue.drop(1)
-    while (x <= m) {   // m is a period
+    while (x <= m) { // m is a period
       assignTuple(tuple, routingTable)
       tuple = tupleQueue.head
       tupleQueue.drop(1)
@@ -168,16 +169,22 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
   onTransition {
     case _ -> WAIT => {
-      // clear
-      nextStateData.copy(n = 0)
-      for (i <- 0 to k - 1) {
-        nextStateData.sketch.A.update(i, 0)
+      nextStateData.sketch.heavyHitters.foreach {
+        entry => {
+          log.info("Scheduler " + index + " owns heavy hitters: " + entry._1 + " -> " + entry._2)
+        }
       }
-      nextStateData.sketch.map.clear()
-      nextStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta))
 
       log.info("Scheduler instance " + index + " send sketch successfully")
       coordinatorActor ! nextStateData.sketch
+
+      // clear
+      nextStateData.copy(n = 0)
+      for (i <- 0 to k - 1) {
+        nextStateData.sketch.buckets.update(i, 0)
+      }
+      nextStateData.sketch.heavyHitters.clear()
+      nextStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta))
     }
 
     case _ -> ASSIGN => {
