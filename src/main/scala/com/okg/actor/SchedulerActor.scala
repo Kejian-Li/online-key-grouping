@@ -103,9 +103,13 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
         val heavyHitters = schedulerStateData.spaceSaving.getHeavyHitters
         updateSketch(heavyHitters, schedulerStateData.sketch)
 
+        log.info("Scheduler instance " + index + " send sketch successfully")
+        coordinatorActor ! new Sketch(schedulerStateData.sketch.heavyHitters.clone(), schedulerStateData.sketch.buckets)
+
         log.info("Scheduler instance " + index + " is gonna WAIT state")
 
-        goto(WAIT)
+        goto(WAIT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta),
+          sketch = new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k))))
       } else {
         stay()
       }
@@ -168,18 +172,6 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   }
 
   onTransition {
-    case _ -> WAIT => {
-      log.info("Scheduler instance " + index + " send sketch successfully")
-      coordinatorActor ! new Sketch(nextStateData.sketch.heavyHitters.clone(), nextStateData.sketch.buckets)
-
-      // clear
-      for (i <- 0 to k - 1) {
-        nextStateData.sketch.buckets.update(i, 0)
-      }
-      nextStateData.sketch.heavyHitters.clear()
-      nextStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta))
-    }
-
     case _ -> ASSIGN => {
       assign(nextStateData.tupleQueue, nextStateData.routingTable)
       self ! AssignmentCompleted // assignment in each period is completed

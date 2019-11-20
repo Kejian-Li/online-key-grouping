@@ -2,8 +2,6 @@ package com.okg.state
 
 import com.okg.message.{RoutingTable, Sketch}
 
-import scala.collection.mutable
-
 /**
   *
   * @param routingTable

@@ -23,7 +23,7 @@ class SimulationActor(coordinatorActor: ActorRef,
 
   def startSimulation(): Unit = {
     val inFileName =
-      "C:\\Users\\lizi\\Desktop\\分布式流处理系统的数据分区算法研究\\dataset\\zipf_dataset\\zipf_z_0-8.csv"
+      "C:\\Users\\lizi\\Desktop\\分布式流处理系统的数据分区算法研究\\dataset\\zipf_dataset\\zipf_z_2-0.csv"
     val csvItemReader = new CsvItemReader(new CsvReader(inFileName))
     var item = csvItemReader.nextItem()
     var sourceIndex = 0
