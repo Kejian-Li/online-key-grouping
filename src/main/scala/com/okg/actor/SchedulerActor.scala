@@ -66,11 +66,11 @@ class SchedulerActor(index: Int, // index of this scheduler instance
   when(HASH) {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
       schedulerStateData.n += 1
-      log.info("scheduler instance " + index + " received a tuple, " + schedulerStateData.n + " tuples in total")
+      log.info("Scheduler instance " + index + " received a tuple, " + schedulerStateData.n + " tuples in total")
       assignTuple(tuple, schedulerStateData.routingTable)
 
       if (schedulerStateData.n == N) {
-        log.info("gonna COLLECT state")
+        log.info("Scheduler instance " + index + " is gonna COLLECT state")
         goto(COLLECT) using (schedulerStateData.copy(n = 0))
       } else {
         stay()
@@ -102,7 +102,7 @@ class SchedulerActor(index: Int, // index of this scheduler instance
         val heavyHitters = schedulerStateData.spaceSaving.getHeavyHitters
         updateSketch(heavyHitters, schedulerStateData.sketch)
 
-        log.info("gonna WAIT state")
+        log.info("Scheduler instance " + index + " is gonna WAIT state")
         goto(WAIT)
       } else {
         stay()
@@ -112,7 +112,7 @@ class SchedulerActor(index: Int, // index of this scheduler instance
 
   when(WAIT) {
     case Event(startAssignment: StartAssignment, schedulerStateData: SchedulerStateData) => {
-      log.info("received routing table, starting assignment")
+      log.info("Scheduler instance " + index + " received routing table, starting assignment...")
       goto(ASSIGN) using (schedulerStateData.copy(routingTable = startAssignment.routingTable))
     }
   }
@@ -122,6 +122,7 @@ class SchedulerActor(index: Int, // index of this scheduler instance
       for (i <- 0 to instanceActors.size - 1) {
         instanceActors(i) ! StartSimulation
       }
+      coordinatorActor ! StartSimulation
       stay()
     }
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
@@ -138,7 +139,7 @@ class SchedulerActor(index: Int, // index of this scheduler instance
 
     case Event(TerminateSimulation, schedulerStateData: SchedulerStateData) => {
       for (i <- 1 to instanceActors.size - 1) {
-        instanceActors(i) forward (TerminateSimulation)   // forward termination notification to instances
+        instanceActors(i) forward (TerminateSimulation) // forward termination notification to instances
       }
       stay()
     }
@@ -170,7 +171,7 @@ class SchedulerActor(index: Int, // index of this scheduler instance
       nextStateData.sketch.map.clear()
       nextStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta))
 
-      log.info("send sketch")
+      log.info("Scheduler instance " + index + " send sketch successfully")
       coordinatorActor ! nextStateData.sketch
     }
 

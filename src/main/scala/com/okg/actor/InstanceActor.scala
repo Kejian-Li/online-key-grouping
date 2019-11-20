@@ -26,7 +26,6 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
     }
 
     case Event(startMigration: StartMigration, data: InstanceStateData) => {
-      coordinatorActorRef = sender()
       instanceActors = startMigration.instanceActors
       goto(MIGRATION)
     }
@@ -38,17 +37,21 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
     }
   }
 
-  val schedulerActorSet = Set.empty[ActorRef]
+  val schedulerActorsSet = Set.empty[ActorRef]
   var receivedTerminationNotification = 0
   whenUnhandled {
     case Event(StartSimulation, data: InstanceStateData) => {
-      schedulerActorSet.+(sender())
+      schedulerActorsSet.+(sender())
+      stay()
+    }
+    case Event(CoordinatorRegistration, data: InstanceStateData) => {
+      coordinatorActorRef = sender()
       stay()
     }
 
     case Event(TerminateSimulation, data: InstanceStateData) => {
       receivedTerminationNotification += 1
-      if (receivedTerminationNotification == schedulerActorSet.size) {
+      if (receivedTerminationNotification == schedulerActorsSet.size) {
         sender() ! new Load(index, data.tupleNums) // tell simulation actor statistics
       }
       stay()

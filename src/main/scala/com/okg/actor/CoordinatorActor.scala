@@ -20,7 +20,7 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
                             k: Int) // number of operator instances
   extends Actor with FSM[CoordinatorState, CoordinatorStateData] {
 
-  val schedulerActors = Set.empty[ActorRef]
+  val schedulerActorsSet = Set.empty[ActorRef]
   var nextRoutingTable = new RoutingTable(mutable.Map.empty[Int, Int]) // empty routing table
 
   val coordinatorStateData = new CoordinatorStateData(
@@ -32,13 +32,13 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
 
   when(WAIT_ALL) {
     case Event(sketch: Sketch, coordinatorStateData: CoordinatorStateData) => {
-      schedulerActors.+(sender())
-      log.info("received sketch from " + sender())
+
+      log.info("Coordinator received sketch from " + sender())
 
       val newStateData = coordinatorStateData.copy(sketches = coordinatorStateData.sketches :+ sketch)
-      log.info("received sketch " + newStateData.sketches.size + " in total")
+      log.info("Coordinator received sketch " + newStateData.sketches.size + " in total")
       if (newStateData.sketches.size == s) {
-        log.info("gonna GENERATION state")
+        log.info("Coordinator is gonna GENERATION state")
         goto(GENERATION) using (newStateData)
       } else {
         stay() using (newStateData)
@@ -52,15 +52,25 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
 
       if (coordinatorStateData.notifications == s) {
         if (nextRoutingTable.map.isEmpty) { // sanity check
-          log.error("next routing table is empty")
+          log.error("Coordinator: next routing table is empty")
         }else {
-          log.info("new routing table size is " + coordinatorStateData.currentRoutingTable.size())
+          log.info("Coordinator: new routing table size is " + coordinatorStateData.currentRoutingTable.size())
         }
         goto(WAIT_ALL) using (
           new CoordinatorStateData(nextRoutingTable, List.empty[Sketch], 0))
       } else {
         stay()
       }
+    }
+  }
+
+  whenUnhandled {
+    case Event(StartSimulation, coordinatorStateData: CoordinatorStateData) => {
+      schedulerActorsSet.+(sender())
+      for (i <- 0 to instanceActors.size) {
+        instanceActors(i) ! CoordinatorRegistration
+      }
+      stay()
     }
   }
 
@@ -73,7 +83,7 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
       })
     }
     case GENERATION -> WAIT_ALL => {
-      schedulerActors.foreach(schedulerActor => {
+      schedulerActorsSet.foreach(schedulerActor => {
         schedulerActor ! new StartAssignment(nextRoutingTable)
       })
     }
@@ -102,8 +112,8 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
         heavyHittersMapping.put(entry._1, index)
       }
     )
-    log.info("build global mapping function successfully")
-    log.info("next routing table size is: " + heavyHittersMapping.size)
+    log.info("Coordinator: build global mapping function successfully")
+    log.info("Coordinator: next routing table size is: " + heavyHittersMapping.size)
     new RoutingTable(heavyHittersMapping)
   }
 
@@ -160,7 +170,7 @@ case class CoordinatorActor(instanceActors: Array[ActorRef],
       }
     }
 
-    log.info("next migration table size is: " + migrationTable.map.size)
+    log.info("Coordinator: make next migration table successfully, its size is: " + migrationTable.map.size)
     migrationTable
   }
 }
