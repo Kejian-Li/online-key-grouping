@@ -1,3 +1,10 @@
 package com.okg.message
 
-case class StartAssignment(routingTable: RoutingTable)
+import akka.dispatch.ControlMessage
+
+/**
+  * Message inherited from {@Link ControlMessage} can be inserted into the head of mail-box's queue
+  *
+  * @param routingTable
+  */
+case class StartAssignment(routingTable: RoutingTable) extends ControlMessage

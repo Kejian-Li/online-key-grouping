@@ -1,8 +1,14 @@
 package com.okg.message
 
+import akka.dispatch.ControlMessage
+
 import scala.collection.mutable
 
-case class RoutingTable(map: mutable.Map[Int, Int]) extends Message {
+/**
+  * Message inherited from {@Link ControlMessage} can be inserted into the head of mail-box's queue
+  * @param map routing table
+  */
+case class RoutingTable(map: mutable.Map[Int, Int]) extends ControlMessage {
 
   def get(key: Int) = {
     map.get(key).get

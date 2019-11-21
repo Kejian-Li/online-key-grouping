@@ -91,18 +91,11 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
   }
 
-  var learnNum = m
 
   when(LEARN) {
     case Event(CollectCompleted, schedulerStateData: SchedulerStateData) => {
 
-      if(schedulerStateData.tupleQueue.size >= m) {
-        learnNum = m
-      } else {
-        learnNum = schedulerStateData.tupleQueue.size
-      }
-
-      for (i <- 1 to learnNum) {
+      for (i <- 1 to m) {
         val tuple = schedulerStateData.tupleQueue.head // return but don't remove first element
         val key = tuple.key
         schedulerStateData.spaceSaving.newSample(key)
@@ -141,10 +134,14 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       stay()
     }
 
-    // receive and collect tuples
+    // collect tuples
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
       schedulerStateData.tupleQueue += (tuple)
-      stay()
+      if (schedulerStateData.tupleQueue.size == m) { // time to learn
+        goto(LEARN)
+      } else {
+        stay()
+      }
     }
 
     case Event(TerminateSimulation, schedulerStateData: SchedulerStateData) => {
@@ -158,7 +155,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   def assign(tupleQueue: TupleQueue[Tuple[Int]], routingTable: RoutingTable) = {
     var x = 0
     var tuple = tupleQueue.dequeue() // return and remove first element
-    while (x <= learnNum) {
+    while (x < m) {
       assignTuple(tuple, routingTable)
       tuple = tupleQueue.dequeue()
       x += 1
@@ -174,10 +171,9 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
   onTransition {
     case _ -> LEARN => {
-      if (!nextStateData.tupleQueue.isEmpty) {
-        self ! CollectCompleted
-      }
+      self ! CollectCompleted
     }
+
     case _ -> ASSIGN => {
       assign(nextStateData.tupleQueue, nextStateData.routingTable)
       self ! AssignmentCompleted // assignment in each period is completed

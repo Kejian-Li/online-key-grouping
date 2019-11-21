@@ -1,10 +1,17 @@
 package com.okg.message
 
+import akka.dispatch.ControlMessage
+
 import scala.collection.mutable
 
-case class MigrationTable(map: mutable.Map[Int, Pair]) extends Message {
+/**
+  * Message inherited from {@Link ControlMessage} can be inserted into the head of mail-box's queue
+  *
+  * @param map migration table
+  */
+case class MigrationTable(map: mutable.Map[Int, Pair]) extends ControlMessage {
 
-  def contains(key: Int)= {
+  def contains(key: Int) = {
     map.contains(key)
   }
 
