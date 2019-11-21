@@ -159,7 +159,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
 
     case Event(TerminateSimulation, schedulerStateData: SchedulerStateData) => {
-      for (i <- 1 to instanceActors.size - 1) {
+      for (i <- 0 to k - 1) {
         instanceActors(i) forward (TerminateSimulation) // forward termination notification to instances
       }
       stay()

@@ -1,7 +1,5 @@
 package com.okg.main
 
-import java.util.Properties
-
 import akka.actor.{ActorRef, ActorSystem, Props}
 import com.okg.actor.{CoordinatorActor, InstanceActor, SchedulerActor}
 import com.okg.message.StartSimulation
@@ -10,7 +8,7 @@ object Main {
 
   def main(args: Array[String]): Unit = {
 
-    val N = 100
+    val N = 1000
     val m = 1000
     val s = 2
     val k = 3
@@ -25,9 +23,6 @@ object Main {
     for (i <- 0 to k - 1) {
       instanceActors(i) = system.actorOf(Props(new InstanceActor(i)))
     }
-
-    val conf = new Properties()
-
 
     val my_mailbox = "akka.actor.my_mailbox"
     val coordinatorActorRef = system.actorOf(

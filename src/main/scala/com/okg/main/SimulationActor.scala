@@ -23,7 +23,7 @@ class SimulationActor(coordinatorActor: ActorRef,
 
   def startSimulation(): Unit = {
     val inFileName =
-      "C:\\Users\\lizi\\Desktop\\分布式流处理系统的数据分区算法研究\\dataset\\zipf_dataset\\zipf_z_2-0.csv"
+      "C:\\Users\\lizi\\Desktop\\分布式流处理系统的数据分区算法研究\\dataset\\zipf_dataset\\zipf_z_1-2.csv"
     val csvItemReader = new CsvItemReader(new CsvReader(inFileName))
     var item = csvItemReader.nextItem()
     var sourceIndex = 0
@@ -33,9 +33,11 @@ class SimulationActor(coordinatorActor: ActorRef,
       schedulerActors(i) ! StartSimulation
     }
 
+    val tupleNums = new Array[Int](s)
     while (item != null) {
       for (i <- 0 to item.size - 1) {
         schedulerActors(sourceIndex) ! new Tuple[Int](item(i).toInt)
+        tupleNums(sourceIndex) += 1
 
         sourceIndex += 1
         if (sourceIndex == s) {
@@ -45,7 +47,12 @@ class SimulationActor(coordinatorActor: ActorRef,
       item = csvItemReader.nextItem()
     }
 
+    for (i <- 0 to s - 1) {
+      log.info("Scheduler " + i + " received " + tupleNums(i) + " tuples")
+    }
+
     // Simulation terminates...
+    log.info("Simulation terminates...")
     for (i <- 0 to s - 1) {
       schedulerActors(i) ! TerminateSimulation
     }
