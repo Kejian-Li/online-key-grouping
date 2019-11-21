@@ -74,7 +74,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       if (n == N) {
         log.info("Scheduler " + index + " received " + n + " tuples in total at HASH state")
         log.info("Scheduler " + index + " is gonna LEARN state")
-        goto(LEARN)
+        goto(COLLECT)
       } else {
         stay()
       }
@@ -91,11 +91,27 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
   }
 
+  when(COLLECT) {
+    case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
+      schedulerStateData.tupleQueue += (tuple)
+      if (schedulerStateData.tupleQueue.size > 0) {
+        goto(LEARN)
+      } else {
+        stay()
+      }
+    }
+  }
 
+  var learnNum = m
   when(LEARN) {
     case Event(CollectCompleted, schedulerStateData: SchedulerStateData) => {
 
-      for (i <- 1 to m) {
+      val remainingTuplesNum = schedulerStateData.tupleQueue.size
+      if (remainingTuplesNum < m) {
+        learnNum = remainingTuplesNum
+      }
+
+      for (i <- 1 to learnNum) {
         val tuple = schedulerStateData.tupleQueue.head // return but don't remove first element
         val key = tuple.key
         schedulerStateData.spaceSaving.newSample(key)
@@ -137,11 +153,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     // collect tuples
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
       schedulerStateData.tupleQueue += (tuple)
-      if (schedulerStateData.tupleQueue.size == m) { // time to learn
-        goto(LEARN)
-      } else {
-        stay()
-      }
+      stay()
     }
 
     case Event(TerminateSimulation, schedulerStateData: SchedulerStateData) => {
@@ -155,7 +167,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   def assign(tupleQueue: TupleQueue[Tuple[Int]], routingTable: RoutingTable) = {
     var x = 0
     var tuple = tupleQueue.dequeue() // return and remove first element
-    while (x < m) {
+    while (x < learnNum) {
       assignTuple(tuple, routingTable)
       tuple = tupleQueue.dequeue()
       x += 1
