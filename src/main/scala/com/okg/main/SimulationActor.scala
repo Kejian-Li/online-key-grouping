@@ -21,9 +21,11 @@ class SimulationActor(coordinatorActor: ActorRef,
   var loads = new Array[Int](k)
   var receivedLoad = 0
 
+  val windowsFileName = "C:\\Users\\lizi\\Desktop\\分布式流处理系统的数据分区算法研究\\dataset\\zipf_dataset\\zipf_z_1-2.csv"
+  val ubuntuFileName = "~/workspace/scala_workspace/zipf_data/zipf_z_1-2.csv"
   def startSimulation(): Unit = {
-    val inFileName =
-      "C:\\Users\\lizi\\Desktop\\分布式流处理系统的数据分区算法研究\\dataset\\zipf_dataset\\zipf_z_1-2.csv"
+    val inFileName = ubuntuFileName
+
     val csvItemReader = new CsvItemReader(new CsvReader(inFileName))
     var item = csvItemReader.nextItem()
     var sourceIndex = 0
