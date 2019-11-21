@@ -69,11 +69,11 @@ class OKG_Test extends TestKit(ActorSystem("OKG")) with WordSpecLike {
       schedulerActors(1) ! new Tuple[Int](7)
       schedulerActors(1) ! new Tuple[Int](8)
 
-      firstSchedulerStateProbe.expectMsg(new Transition(schedulerActors(0), HASH, COLLECT))
-      firstSchedulerStateProbe.expectMsg(new Transition(schedulerActors(0), COLLECT, WAIT))
+      firstSchedulerStateProbe.expectMsg(new Transition(schedulerActors(0), HASH, LEARN))
+      firstSchedulerStateProbe.expectMsg(new Transition(schedulerActors(0), LEARN, WAIT))
 
-      secondSchedulerStateProbe.expectMsg(new Transition(schedulerActors(1), HASH, COLLECT))
-      secondSchedulerStateProbe.expectMsg(new Transition(schedulerActors(1), COLLECT, WAIT))
+      secondSchedulerStateProbe.expectMsg(new Transition(schedulerActors(1), HASH, LEARN))
+      secondSchedulerStateProbe.expectMsg(new Transition(schedulerActors(1), LEARN, WAIT))
 
       coordinatorStateProbe.expectMsg(new Transition(coordinatorActorRef, WAIT_ALL, GENERATION))
 

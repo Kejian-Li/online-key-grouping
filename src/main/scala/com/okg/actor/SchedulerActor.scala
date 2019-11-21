@@ -17,13 +17,14 @@ import scala.collection.mutable
 
 class SchedulerActor(index: Int, // index of this Scheduler instance
                      N: Int, // number of received tuples before entering COLLECT state
-                     m: Int, // number of assigned tuples in each period
+                     m: Int, // number of involved tuples in each period
                      k: Int, // number of Operator instances
                      epsilon: Double,
                      theta: Double,
                      coordinatorActor: ActorRef,
                      instanceActors: Array[ActorRef]) extends Actor with FSM[SchedulerState, SchedulerStateData] {
 
+  var period = 0
   val hashFunction = instantiateHashFunction()
 
   val schedulerStateDate = new SchedulerStateData(N,
@@ -71,17 +72,18 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       assignTuple(tuple, schedulerStateData.routingTable)
 
       if (n == N) {
-        log.info("Scheduler instance " + index + " received " + n + " tuples in total at HASH state")
-        log.info("Scheduler instance " + index + " is gonna COLLECT state")
-        goto(COLLECT)
+        log.info("Scheduler " + index + " received " + n + " tuples in total at HASH state")
+        log.info("Scheduler " + index + " is gonna LEARN state")
+        goto(LEARN)
       } else {
         stay()
       }
     }
   }
 
-  def updateSketch(heavyHitters: util.HashMap[Integer, Integer], sketch: Sketch) = {
-    val it = heavyHitters.entrySet().iterator()
+  // from java's HashMap to Scala's mutable.Map
+  def putHeavyHittersIntoSketch(rawHeavyHitters: util.HashMap[Integer, Integer], sketch: Sketch) = {
+    val it = rawHeavyHitters.entrySet().iterator()
 
     while (it.hasNext) {
       val entry = it.next()
@@ -89,37 +91,42 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
   }
 
-  when(COLLECT) {
-    case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
+  var learnNum = m
 
-      val key = tuple.key
-      schedulerStateData.spaceSaving.newSample(key)
-      val index = hash(key)
-      schedulerStateData.sketch.buckets.update(index, schedulerStateData.sketch.buckets(index) + 1)
+  when(LEARN) {
+    case Event(CollectCompleted, schedulerStateData: SchedulerStateData) => {
 
-      schedulerStateData.tupleQueue.+=(tuple)
-
-      if (schedulerStateData.tupleQueue.size >= m) {
-        val heavyHitters = schedulerStateData.spaceSaving.getHeavyHitters
-        updateSketch(heavyHitters, schedulerStateData.sketch)
-
-        log.info("Scheduler instance " + index + " send sketch successfully")
-        coordinatorActor ! new Sketch(schedulerStateData.sketch.heavyHitters.clone(), schedulerStateData.sketch.buckets)
-
-        log.info("Scheduler instance " + index + " is gonna WAIT state")
-
-        goto(WAIT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta),
-          sketch = new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k))))
+      if(schedulerStateData.tupleQueue.size >= m) {
+        learnNum = m
       } else {
-        stay()
+        learnNum = schedulerStateData.tupleQueue.size
       }
 
+      for (i <- 1 to learnNum) {
+        val tuple = schedulerStateData.tupleQueue.head // return but don't remove first element
+        val key = tuple.key
+        schedulerStateData.spaceSaving.newSample(key)
+        val index = hash(key)
+        schedulerStateData.sketch.buckets.update(index, schedulerStateData.sketch.buckets(index) + 1)
+      }
+
+      log.info("Scheduler " + index + " enters period " + period)
+      period += 1
+      val rawHeavyHittersMap = schedulerStateData.spaceSaving.getHeavyHitters
+      putHeavyHittersIntoSketch(rawHeavyHittersMap, schedulerStateData.sketch)
+
+      coordinatorActor ! new Sketch(schedulerStateData.sketch.heavyHitters.clone(), schedulerStateData.sketch.buckets)
+      log.info("Scheduler " + index + " send sketch successfully")
+
+      log.info("Scheduler " + index + " is gonna WAIT state")
+      goto(WAIT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta),
+        sketch = new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k))))
     }
   }
 
   when(WAIT) {
     case Event(startAssignment: StartAssignment, schedulerStateData: SchedulerStateData) => {
-      log.info("Scheduler instance " + index + " received routing table, starting assignment...")
+      log.info("Scheduler " + index + " received routing table, starting assignment...")
       goto(ASSIGN) using (schedulerStateData.copy(routingTable = startAssignment.routingTable))
     }
   }
@@ -133,14 +140,10 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       }
       stay()
     }
+
+    // receive and collect tuples
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
-
-      val key = tuple.key
-      schedulerStateData.spaceSaving.newSample(key)
-      val index = hash(key)
-      schedulerStateData.sketch.buckets.update(index, schedulerStateData.sketch.buckets(index) + 1)
-      schedulerStateData.tupleQueue.+=(tuple)
-
+      schedulerStateData.tupleQueue += (tuple)
       stay()
     }
 
@@ -154,24 +157,27 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
   def assign(tupleQueue: TupleQueue[Tuple[Int]], routingTable: RoutingTable) = {
     var x = 0
-    var tuple = tupleQueue.head
-    tupleQueue.drop(1)
-    while (x <= m) { // m is a period
+    var tuple = tupleQueue.dequeue() // return and remove first element
+    while (x <= learnNum) {
       assignTuple(tuple, routingTable)
-      tuple = tupleQueue.head
-      tupleQueue.drop(1)
+      tuple = tupleQueue.dequeue()
       x += 1
     }
   }
 
   when(ASSIGN) {
     case Event(AssignmentCompleted, schedulerStateData: SchedulerStateData) => {
-      log.info("Scheduler " + index + " is gonna COLLECT state")
-      goto(COLLECT)
+      log.info("Scheduler " + index + " is gonna LEARN state")
+      goto(LEARN)
     }
   }
 
   onTransition {
+    case _ -> LEARN => {
+      if (!nextStateData.tupleQueue.isEmpty) {
+        self ! CollectCompleted
+      }
+    }
     case _ -> ASSIGN => {
       assign(nextStateData.tupleQueue, nextStateData.routingTable)
       self ! AssignmentCompleted // assignment in each period is completed
