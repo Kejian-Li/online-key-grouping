@@ -2,6 +2,7 @@ package com.okg.actor
 
 import akka.actor.{Actor, ActorRef, FSM}
 import akka.japi.Option.Some
+import akka.util.NanoTimeTokenBucket
 import com.okg.message._
 import com.okg.state._
 
@@ -131,6 +132,24 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
     val cumulativeHeavyHittersMap = mutable.TreeMap.empty[Int, Int]
     val cumulativeBuckets = new Array[Int](k)
 
+    log.info("Coordinator: " + "heavy hitters of each original sketch: ")
+    coordinatorStateData.sketches.foreach{
+      sketch => {
+        sketch.heavyHitters.foreach{
+          entry => {
+            log.info(entry._1 + " " + entry._2)
+          }
+        }
+      }
+    }
+
+    for (j <- 0 to coordinatorStateData.sketches.size - 1) {
+      log.info("Coordinator: sketch " + j + "'s bucket: ")
+      for (i <- 0 to k - 1) {
+        log.info("Coordinator: bucket " + i + " owns " + coordinatorStateData.sketches(j).buckets(i) + " tuples")
+      }
+    }
+
     coordinatorStateData.sketches.foreach(
       sketch => {
 
@@ -146,6 +165,13 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
         }
       }
     )
+
+    log.info("Coordinator: " + " cumulative heavy hitters with their frequencies as follows in the original order: ")
+    cumulativeHeavyHittersMap.foreach{
+      entry => {
+        log.info(entry._1 + "  " + entry._2)
+      }
+    }
 
     for (i <- 0 to k - 1) {
       log.info("Coordinator: cumulative bucket " + i + " owns " + cumulativeBuckets(i) + " tuples")

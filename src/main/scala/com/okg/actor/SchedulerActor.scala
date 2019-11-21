@@ -105,13 +105,13 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
           val tuple = tupleQueue.head // return first tuple but don't remove
           val key = tuple.key
           schedulerStateData.spaceSaving.newSample(key)
-          val index = hash(key)
-          schedulerStateData.sketch.buckets.update(index, schedulerStateData.sketch.buckets(index) + 1)
+          val targetIndex = hash(key)
+          schedulerStateData.sketch.buckets.update(targetIndex, schedulerStateData.sketch.buckets(targetIndex) + 1)
         }
         // make and send sketch
         val rawHeavyHittersMap = schedulerStateData.spaceSaving.getHeavyHitters
         putHeavyHittersIntoSketch(rawHeavyHittersMap, schedulerStateData.sketch)
-        coordinatorActor ! new Sketch(schedulerStateData.sketch.heavyHitters.clone(), schedulerStateData.sketch.buckets)
+        coordinatorActor ! new Sketch(schedulerStateData.sketch.heavyHitters.clone(), schedulerStateData.sketch.buckets.clone())
         log.info("Scheduler " + index + " send sketch successfully")
 
         log.info("Scheduler " + index + " is gonna WAIT state")
