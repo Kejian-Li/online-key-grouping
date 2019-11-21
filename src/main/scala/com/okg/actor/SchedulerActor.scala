@@ -94,7 +94,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   when(COLLECT) {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
       schedulerStateData.tupleQueue += (tuple)
-      if (schedulerStateData.tupleQueue.size > 0) {
+      if (schedulerStateData.tupleQueue.size >= m) {
         goto(LEARN)
       } else {
         stay()
@@ -111,6 +111,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
         learnNum = remainingTuplesNum
       }
 
+      log.info("Scheduler " + index + " learns " + learnNum + " tuples")
       for (i <- 1 to learnNum) {
         val tuple = schedulerStateData.tupleQueue.head // return but don't remove first element
         val key = tuple.key
@@ -166,10 +167,9 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
   def assign(tupleQueue: TupleQueue[Tuple[Int]], routingTable: RoutingTable) = {
     var x = 0
-    var tuple = tupleQueue.dequeue() // return and remove first element
     while (x < learnNum) {
+      val tuple = tupleQueue.dequeue() // return and remove first element
       assignTuple(tuple, routingTable)
-      tuple = tupleQueue.dequeue()
       x += 1
     }
   }

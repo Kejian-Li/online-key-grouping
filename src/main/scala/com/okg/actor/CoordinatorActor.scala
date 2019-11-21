@@ -114,7 +114,6 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
         val key = entry._1
         val leastIndex = findLeastLoad(buckets)
         buckets.update(leastIndex, buckets(leastIndex) + entry._2)
-        log.info("Coordinator: buckets " + leastIndex + " owns " + buckets(leastIndex) + " tuples")
         heavyHittersMapping.put(key, leastIndex)
       }
     )
@@ -122,7 +121,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
     log.info("Coordinator: next routing table size is: " + heavyHittersMapping.size)
 
     for (i <- 0 to buckets.length - 1) {
-      log.info("Coordinator: buckets " + i + " owns " + buckets(i) + " tuples")
+      log.info("Coordinator: final bucket " + i + " owns " + buckets(i) + " tuples")
     }
     new RoutingTable(heavyHittersMapping)
   }
@@ -149,11 +148,12 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
     )
 
     for (i <- 0 to k - 1) {
-      log.info("Coordinator: buckets " + i + " owns " + cumulativeBuckets(i) + " tuples")
+      log.info("Coordinator: cumulative bucket " + i + " owns " + cumulativeBuckets(i) + " tuples")
     }
 
     val descendingHeavyHittersMap = cumulativeHeavyHittersMap.toSeq.sortWith(_._2 > _._2)
 
+    log.info("Coordinator: " + " cumulative heavy hitters with their frequencies as follows in the descending order: ")
     descendingHeavyHittersMap.foreach{
       entry => {
         log.info(entry._1 + "  " + entry._2)
