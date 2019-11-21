@@ -24,7 +24,6 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
                      coordinatorActor: ActorRef,
                      instanceActors: Array[ActorRef]) extends Actor with FSM[SchedulerState, SchedulerStateData] {
 
-  var period = 0
   val hashFunction = instantiateHashFunction()
 
   val schedulerStateDate = new SchedulerStateData(N,
@@ -74,7 +73,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       if (n == N) {
         log.info("Scheduler " + index + " received " + n + " tuples in total at HASH state")
         log.info("Scheduler " + index + " is gonna LEARN state")
-        goto(COLLECT)
+        goto(LEARN)
       } else {
         stay()
       }
@@ -91,47 +90,38 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
   }
 
-  when(COLLECT) {
+  var period = 1
+
+  when(LEARN) {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
-      schedulerStateData.tupleQueue += (tuple)
-      if (schedulerStateData.tupleQueue.size >= m) {
-        goto(LEARN)
+      val tupleQueue = schedulerStateData.tupleQueue
+      tupleQueue += tuple
+
+      if (tupleQueue.size >= m) {
+        log.info("Scheduler " + index + " enters " + period + " period")
+        period += 1
+        // learn
+        for (i <- 1 to m) {
+          val tuple = tupleQueue.head // return first tuple but don't remove
+          val key = tuple.key
+          schedulerStateData.spaceSaving.newSample(key)
+          val index = hash(key)
+          schedulerStateData.sketch.buckets.update(index, schedulerStateData.sketch.buckets(index) + 1)
+        }
+        // make and send sketch
+        val rawHeavyHittersMap = schedulerStateData.spaceSaving.getHeavyHitters
+        putHeavyHittersIntoSketch(rawHeavyHittersMap, schedulerStateData.sketch)
+        coordinatorActor ! new Sketch(schedulerStateData.sketch.heavyHitters.clone(), schedulerStateData.sketch.buckets)
+        log.info("Scheduler " + index + " send sketch successfully")
+
+        log.info("Scheduler " + index + " is gonna WAIT state")
+        goto(WAIT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta),
+          sketch = new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k))))
       } else {
         stay()
       }
     }
-  }
 
-  var learnNum = m
-  when(LEARN) {
-    case Event(CollectCompleted, schedulerStateData: SchedulerStateData) => {
-
-      val remainingTuplesNum = schedulerStateData.tupleQueue.size
-      if (remainingTuplesNum < m) {
-        learnNum = remainingTuplesNum
-      }
-
-      log.info("Scheduler " + index + " learns " + learnNum + " tuples")
-      for (i <- 1 to learnNum) {
-        val tuple = schedulerStateData.tupleQueue.head // return but don't remove first element
-        val key = tuple.key
-        schedulerStateData.spaceSaving.newSample(key)
-        val index = hash(key)
-        schedulerStateData.sketch.buckets.update(index, schedulerStateData.sketch.buckets(index) + 1)
-      }
-
-      log.info("Scheduler " + index + " enters period " + period)
-      period += 1
-      val rawHeavyHittersMap = schedulerStateData.spaceSaving.getHeavyHitters
-      putHeavyHittersIntoSketch(rawHeavyHittersMap, schedulerStateData.sketch)
-
-      coordinatorActor ! new Sketch(schedulerStateData.sketch.heavyHitters.clone(), schedulerStateData.sketch.buckets)
-      log.info("Scheduler " + index + " send sketch successfully")
-
-      log.info("Scheduler " + index + " is gonna WAIT state")
-      goto(WAIT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta),
-        sketch = new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k))))
-    }
   }
 
   when(WAIT) {
@@ -151,9 +141,8 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       stay()
     }
 
-    // collect tuples
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
-      schedulerStateData.tupleQueue += (tuple)
+      schedulerStateData.tupleQueue += tuple
       stay()
     }
 
@@ -167,7 +156,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
   def assign(tupleQueue: TupleQueue[Tuple[Int]], routingTable: RoutingTable) = {
     var x = 0
-    while (x < learnNum) {
+    while (x < m) {
       val tuple = tupleQueue.dequeue() // return and remove first element
       assignTuple(tuple, routingTable)
       x += 1
@@ -182,10 +171,6 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   }
 
   onTransition {
-    case _ -> LEARN => {
-      self ! CollectCompleted
-    }
-
     case _ -> ASSIGN => {
       assign(nextStateData.tupleQueue, nextStateData.routingTable)
       self ! AssignmentCompleted // assignment in each period is completed
