@@ -101,18 +101,30 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
         log.info("Scheduler " + index + " enters " + period + " period")
         period += 1
         // learn
-        for (i <- 1 to m) {
-          val tuple = tupleQueue.head // return first tuple but don't remove
+        var i = 0
+        val it = tupleQueue.iterator
+        while (i < m) {
+          val tuple = it.next() // return but don't remove
           val key = tuple.key
           schedulerStateData.spaceSaving.newSample(key)
           val targetIndex = hash(key)
           schedulerStateData.sketch.buckets.update(targetIndex, schedulerStateData.sketch.buckets(targetIndex) + 1)
+          i += 1
         }
         // make and send sketch
         val rawHeavyHittersMap = schedulerStateData.spaceSaving.getHeavyHitters
         putHeavyHittersIntoSketch(rawHeavyHittersMap, schedulerStateData.sketch)
-        coordinatorActor ! new Sketch(schedulerStateData.sketch.heavyHitters.clone(), schedulerStateData.sketch.buckets.clone())
+        val sketch = new Sketch(schedulerStateData.sketch.heavyHitters.clone(), schedulerStateData.sketch.buckets.clone())
+        coordinatorActor ! sketch
+
         log.info("Scheduler " + index + " send sketch successfully")
+        log.info("Scheduler " + index + "'s size of heavy hitters is: " + sketch.heavyHitters.size)
+        log.info("Scheduler " + index + "'s buckets: ")
+        sketch.buckets.foreach{
+          element => {
+            log.info(element.toString)
+          }
+        }
 
         log.info("Scheduler " + index + " is gonna WAIT state")
         goto(WAIT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta),

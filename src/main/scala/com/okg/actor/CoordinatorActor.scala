@@ -107,7 +107,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
   }
 
   // build global mapping and return routing table
-  def buildGlobalMappingFunction(heavyHitters: Seq[(Int, Int)],    //  (key, frequency)
+  def buildGlobalMappingFunction(heavyHitters: Seq[(Int, Int)], //  (key, frequency)
                                  buckets: Array[Int]) = {
     val heavyHittersMapping = mutable.Map.empty[Int, Int]
     heavyHitters.foreach(
@@ -133,13 +133,16 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
     val cumulativeBuckets = new Array[Int](k)
 
     log.info("Coordinator: " + "heavy hitters of each original sketch: ")
-    coordinatorStateData.sketches.foreach{
+    var i = 0
+    coordinatorStateData.sketches.foreach {
       sketch => {
-        sketch.heavyHitters.foreach{
+        log.info("Coordinator: sketch " + i + "'s heavy hitters of each original sketch: ")
+        sketch.heavyHitters.foreach {
           entry => {
             log.info(entry._1 + " " + entry._2)
           }
         }
+        i += 1
       }
     }
 
@@ -167,7 +170,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
     )
 
     log.info("Coordinator: " + " cumulative heavy hitters with their frequencies as follows in the original order: ")
-    cumulativeHeavyHittersMap.foreach{
+    cumulativeHeavyHittersMap.foreach {
       entry => {
         log.info(entry._1 + "  " + entry._2)
       }
@@ -180,7 +183,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
     val descendingHeavyHittersMap = cumulativeHeavyHittersMap.toSeq.sortWith(_._2 > _._2)
 
     log.info("Coordinator: " + " cumulative heavy hitters with their frequencies as follows in the descending order: ")
-    descendingHeavyHittersMap.foreach{
+    descendingHeavyHittersMap.foreach {
       entry => {
         log.info(entry._1 + "  " + entry._2)
       }
