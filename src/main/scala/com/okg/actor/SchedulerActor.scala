@@ -90,6 +90,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
   }
 
+  var tuplesNum = 0
   var period = 1
 
   when(LEARN) {
@@ -99,6 +100,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
       if (tupleQueue.size >= m) {
         log.info("Scheduler " + index + " enters " + period + " period")
+        log.info("Scheduler " + index + " assigned so far " + tuplesNum + " tuples in total")
         period += 1
         // learn
         var i = 0
@@ -120,7 +122,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
         log.info("Scheduler " + index + " send sketch successfully")
         log.info("Scheduler " + index + "'s size of heavy hitters is: " + sketch.heavyHitters.size)
         log.info("Scheduler " + index + "'s buckets: ")
-        sketch.buckets.foreach{
+        sketch.buckets.foreach {
           element => {
             log.info(element.toString)
           }
@@ -169,6 +171,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   def assign(tupleQueue: TupleQueue[Tuple[Int]], routingTable: RoutingTable) = {
     var x = 0
     while (x < m) {
+      tuplesNum += 1
       val tuple = tupleQueue.dequeue() // return and remove first element
       assignTuple(tuple, routingTable)
       x += 1

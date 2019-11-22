@@ -136,7 +136,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
     var i = 0
     coordinatorStateData.sketches.foreach {
       sketch => {
-        log.info("Coordinator: sketch " + i + "'s heavy hitters of each original sketch: ")
+        log.info("Coordinator: sketch " + i + "'s heavy hitters of original sketch: ")
         sketch.heavyHitters.foreach {
           entry => {
             log.info(entry._1 + " " + entry._2)
