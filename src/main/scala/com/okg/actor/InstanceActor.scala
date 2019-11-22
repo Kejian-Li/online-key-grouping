@@ -53,6 +53,7 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
       stay()
     }
 
+    // there is a logic bug
     case Event(TerminateSimulation, data: InstanceStateData) => {
       receivedTerminationNotification += 1
       if (receivedTerminationNotification == schedulerActorsSet.size) {

@@ -60,9 +60,13 @@ class SimulationActor(coordinatorActor: ActorRef,
   var schedulerTotalTupleNums = 0
   var instanceTotalTupleNums = 0
 
+  var startTime = 0L
+  var endTime = 0L
+
   override def receive: Receive = {
     case StartSimulation => {
       log.info("Simulation starts...")
+      startTime = System.currentTimeMillis()
       startSimulation()
     }
 
@@ -70,8 +74,10 @@ class SimulationActor(coordinatorActor: ActorRef,
       loads(index) = x
       receivedLoad += 1
       if (receivedLoad == k) {
+        endTime = System.currentTimeMillis()
         log.info("received all loads")
         log.info("Simulation terminates...")
+        log.info("Simulation takes " + (endTime - startTime) + " ms")
         log.info("Now output statistics: ")
 
         log.info("Scheduler received tuples：")
@@ -87,6 +93,7 @@ class SimulationActor(coordinatorActor: ActorRef,
           log.info(i + "  ->  " + loads(i))
         }
         log.info("Instance received " + instanceTotalTupleNums + " tuples in total")
+
       }
     }
   }

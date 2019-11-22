@@ -9,7 +9,7 @@ object Main {
   def main(args: Array[String]): Unit = {
 
     val N = 1000
-    val m = 1000
+    val m = 10000
     val s = 3
     val k = 5
     val theta = 0.01
