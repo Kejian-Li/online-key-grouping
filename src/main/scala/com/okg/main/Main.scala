@@ -12,8 +12,8 @@ object Main {
     val m = 1000
     val s = 3
     val k = 5
-    val epsilon = 0.05
     val theta = 0.01
+    val epsilon = theta / 2   // satisfy: theta > epsilon
 
     val system = ActorSystem()
 
