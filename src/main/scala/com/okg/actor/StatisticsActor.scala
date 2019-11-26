@@ -1,6 +1,7 @@
 package com.okg.actor
 
 import java.io.{File, PrintWriter}
+import java.nio.file.Files
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import com.csvreader.CsvWriter
@@ -18,13 +19,14 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
   override def preStart(): Unit = {
     if(!instanceResultDirectory.exists()) {
       instanceResultDirectory.mkdir()
+    }else{
+      val instanceFiles = instanceResultDirectory.listFiles()
+      instanceFiles.forall{
+        instanceFile => instanceFile.delete()
+      }
     }
     for (i <- 0 to instanceSize - 1) {
       val fileName = instanceResultDirectory.getCanonicalPath + "/instance_" + i + ".csv"
-      val file = new File(fileName)
-      if(file.exists()) {
-        file.delete()
-      }
       periodWriters(i) = new CsvWriter(fileName)
     }
   }

@@ -11,7 +11,7 @@ object Main {
     val N = 1000
     val m = 10000
     val s = 3
-    val k = 10
+    val k = 5
     val theta = 0.05
     val epsilon = theta / 2   // satisfy: theta > epsilon
 
