@@ -2,8 +2,9 @@ package com.okg.actor
 
 import akka.actor.{Actor, ActorRef, FSM}
 import akka.japi.Option.Some
-import akka.util.NanoTimeTokenBucket
 import com.okg.message._
+import com.okg.message.communication.{MigrationCompleted, StartSimulation}
+import com.okg.message.registration.CoordinatorRegistration
 import com.okg.state._
 
 import scala.collection.mutable

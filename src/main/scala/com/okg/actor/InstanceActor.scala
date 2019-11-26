@@ -2,6 +2,8 @@ package com.okg.actor
 
 import akka.actor.{Actor, ActorRef, FSM}
 import com.okg.message._
+import com.okg.message.communication.{MigrationCompleted, StartSimulation, TerminateSimulation}
+import com.okg.message.registration.{CoordinatorRegistration, StatisticsActorRegistration}
 import com.okg.state._
 import com.okg.tuple.Tuple
 
@@ -37,9 +39,13 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
       period += 1
       log.info("Instance " + index + " is gonna enter period " + period)
       log.info("Instance " + index + " received so far " + data.tupleNums + " tuples in total")
+
+      statisticsActor ! new Statistics(index, period, data.tupleNums)
       goto(RUN)
     }
   }
+
+  var statisticsActor = Actor.noSender
 
   val schedulerActorsSet = mutable.Set.empty[ActorRef]
   var receivedTerminationNotification = 0
@@ -50,6 +56,11 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
     }
     case Event(CoordinatorRegistration, data: InstanceStateData) => {
       coordinatorActorRef = sender()
+      stay()
+    }
+
+    case Event(StatisticsActorRegistration, data: InstanceStateData) => {
+      statisticsActor = sender()
       stay()
     }
 

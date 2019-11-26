@@ -1,8 +1,8 @@
 package com.okg.main
 
 import akka.actor.{ActorRef, ActorSystem, Props}
-import com.okg.actor.{CoordinatorActor, InstanceActor, SchedulerActor}
-import com.okg.message.StartSimulation
+import com.okg.actor.{CoordinatorActor, InstanceActor, SchedulerActor, StatisticsActor}
+import com.okg.message.communication.StartSimulation
 
 object Main {
 
@@ -11,8 +11,8 @@ object Main {
     val N = 1000
     val m = 10000
     val s = 3
-    val k = 5
-    val theta = 0.001
+    val k = 10
+    val theta = 0.05
     val epsilon = theta / 2   // satisfy: theta > epsilon
 
     val system = ActorSystem()
@@ -35,8 +35,10 @@ object Main {
             .withMailbox(my_mailbox))
     }
 
+    val statisticsActor = system.actorOf(Props(new StatisticsActor(instanceActors)))
+
     val simulationActor = system.actorOf(
-      Props(new SimulationActor(coordinatorActorRef, schedulerActors, instanceActors))
+      Props(new SimulationActor(coordinatorActorRef, schedulerActors, instanceActors, statisticsActor))
         .withMailbox(my_mailbox))
 
     simulationActor ! StartSimulation

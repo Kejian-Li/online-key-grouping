@@ -4,6 +4,7 @@ import java.util
 
 import akka.actor.{Actor, ActorRef, FSM}
 import com.okg.message._
+import com.okg.message.communication.{AssignmentCompleted, StartSimulation, TerminateSimulation}
 import com.okg.state._
 import com.okg.tuple.{Tuple, TupleQueue}
 import com.okg.util.{SpaceSaving, TwoUniversalHash}
