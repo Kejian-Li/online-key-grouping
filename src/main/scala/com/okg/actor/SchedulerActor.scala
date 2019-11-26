@@ -26,18 +26,16 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
                      instanceActors: Array[ActorRef]) extends Actor with FSM[SchedulerState, SchedulerStateData] {
 
   var hashFunction: TwoUniversalHash = null
-  var schedulerStateDate: SchedulerStateData = null
-
-  startWith(HASH, schedulerStateDate)
 
   //initialize
   override def preStart(): Unit = {
     instantiateHashFunction()
-    initializeSchedulerStateDate()
   }
 
+  startWith(HASH, initializeSchedulerStateDate())
+
   private def initializeSchedulerStateDate() = {
-    schedulerStateDate = new SchedulerStateData(N,
+    new SchedulerStateData(N,
       m,
       k,
       new SpaceSaving(epsilon, theta),
