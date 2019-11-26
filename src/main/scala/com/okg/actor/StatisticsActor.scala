@@ -3,6 +3,7 @@ package com.okg.actor
 import java.io.{File, PrintWriter}
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
+import com.csvreader.CsvWriter
 import com.okg.message.Statistics
 import com.okg.message.communication.StartSimulation
 import com.okg.message.registration.StatisticsActorRegistration
@@ -10,17 +11,21 @@ import com.okg.message.registration.StatisticsActorRegistration
 class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorLogging {
 
   val instanceSize = instanceActors.size
-  val periodWriters = new Array[PrintWriter](instanceSize)
+  val periodWriters = new Array[CsvWriter](instanceSize)
 
+  var instanceResultDirectory: File = new File("instance_statistics_output")
   // initialize
   override def preStart(): Unit = {
+    if(!instanceResultDirectory.exists()) {
+      instanceResultDirectory.mkdir()
+    }
     for (i <- 0 to instanceSize - 1) {
-      val fileName = "instance_" + i
+      val fileName = instanceResultDirectory.getCanonicalPath + "/instance_" + i + ".csv"
       val file = new File(fileName)
       if(file.exists()) {
         file.delete()
       }
-      periodWriters(i) = new PrintWriter(new File(fileName))
+      periodWriters(i) = new CsvWriter(fileName)
     }
   }
 
@@ -35,8 +40,20 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
 
     case Statistics(index, period, tupleNums) => {
       log.info("Statistic: instance " + index + " at " + period + " is " + tupleNums)
-      periodWriters(index).println(period + " " + tupleNums)
+      val record = new Array[String](2)
+      record(0) = period.toString
+      record(1) = tupleNums.toString
+      periodWriters(index).writeRecord(record)
       periodWriters(index).flush()
+    }
+
+  }
+
+  override def postStop(): Unit = {
+    periodWriters.foreach{
+      periodWriter => {
+        periodWriter.close()
+      }
     }
 
   }
