@@ -66,7 +66,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     } else {
       targetIndex = hash(key)
     }
-    log.info("Scheduler " + index + " assigns tuple to target Operator instance " + targetIndex)
+//    targetIndex = hash(key)
     instanceActors(targetIndex) ! tuple
   }
 
@@ -127,13 +127,6 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
         coordinatorActor ! sketch
 
         log.info("Scheduler " + index + " send sketch successfully")
-        log.info("Scheduler " + index + "'s size of heavy hitters is: " + sketch.heavyHitters.size)
-        log.info("Scheduler " + index + "'s buckets: ")
-        sketch.buckets.foreach {
-          element => {
-            log.info(element.toString)
-          }
-        }
 
         log.info("Scheduler " + index + " is gonna WAIT state")
         goto(WAIT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta),

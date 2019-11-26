@@ -148,9 +148,9 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
     }
 
     for (j <- 0 to coordinatorStateData.sketches.size - 1) {
-      log.info("Coordinator: sketch " + j + "'s bucket: ")
+      log.info("Coordinator: sketch " + j + "'s buckets: ")
       for (i <- 0 to k - 1) {
-        log.info("Coordinator: bucket " + i + " owns " + coordinatorStateData.sketches(j).buckets(i) + " tuples")
+        log.info(i + " " + coordinatorStateData.sketches(j).buckets(i))
       }
     }
 
@@ -177,13 +177,14 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
       }
     }
 
+    log.info("Coordinator: cumulative buckets:")
     for (i <- 0 to k - 1) {
-      log.info("Coordinator: cumulative bucket " + i + " owns " + cumulativeBuckets(i) + " tuples")
+      log.info(i + " " + cumulativeBuckets(i))
     }
 
     val descendingHeavyHittersMap = cumulativeHeavyHittersMap.toSeq.sortWith(_._2 > _._2)
 
-    log.info("Coordinator: " + " cumulative heavy hitters with their frequencies as follows in the descending order: ")
+    log.info("Coordinator: " + " cumulative heavy hitters with their frequencies in the descending order: ")
     descendingHeavyHittersMap.foreach {
       entry => {
         log.info(entry._1 + "  " + entry._2)
