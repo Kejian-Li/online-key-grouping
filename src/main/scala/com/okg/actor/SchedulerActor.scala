@@ -25,27 +25,35 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
                      coordinatorActor: ActorRef,
                      instanceActors: Array[ActorRef]) extends Actor with FSM[SchedulerState, SchedulerStateData] {
 
-  val hashFunction = instantiateHashFunction()
-
-  val schedulerStateDate = new SchedulerStateData(N,
-    m,
-    k,
-    new SpaceSaving(epsilon, theta),
-    new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k)),
-    new RoutingTable(mutable.Map.empty[Int, Int]),
-    new TupleQueue[Tuple[Int]])
+  var hashFunction: TwoUniversalHash = null
+  var schedulerStateDate: SchedulerStateData = null
 
   startWith(HASH, schedulerStateDate)
 
-  private def instantiateHashFunction() = {
+  //initialize
+  override def preStart(): Unit = {
+    instantiateHashFunction()
+    initializeSchedulerStateDate()
+  }
 
+  private def initializeSchedulerStateDate() = {
+    schedulerStateDate = new SchedulerStateData(N,
+      m,
+      k,
+      new SpaceSaving(epsilon, theta),
+      new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k)),
+      new RoutingTable(mutable.Map.empty[Int, Int]),
+      new TupleQueue[Tuple[Int]])
+  }
+
+  private def instantiateHashFunction() = {
     val uniformGenerator = new RandomDataGenerator()
     uniformGenerator.reSeed(1000)
 
     val prime = 10000019L
     val a = uniformGenerator.nextLong(1, prime - 1)
     val b = uniformGenerator.nextLong(1, prime - 1)
-    new TwoUniversalHash(k, prime, a, b)
+    hashFunction = new TwoUniversalHash(k, prime, a, b)
   }
 
   def hash(key: Int): Int = {
