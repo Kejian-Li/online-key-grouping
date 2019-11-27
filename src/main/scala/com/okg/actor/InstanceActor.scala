@@ -39,7 +39,6 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
   when(MIGRATION) {
     case Event(MigrationCompleted, data: InstanceStateData) => {
       log.info("Instance " + index + " migrates successfully")
-      log.info("Instance " + index + " received so far " + data.tuplesNum + " tuples in total")
       statisticsActor ! new Statistics(index, period, periodTuplesNum, data.tuplesNum)
 
       period += 1

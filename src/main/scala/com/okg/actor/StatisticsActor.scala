@@ -15,13 +15,14 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
   val periodWriters = new Array[CsvWriter](instanceSize)
 
   var instanceResultDirectory: File = new File("instance_statistics_output")
+
   // initialize
   override def preStart(): Unit = {
-    if(!instanceResultDirectory.exists()) {
+    if (!instanceResultDirectory.exists()) {
       instanceResultDirectory.mkdir()
-    }else{
+    } else {
       val instanceFiles = instanceResultDirectory.listFiles()
-      instanceFiles.forall{
+      instanceFiles.forall {
         instanceFile => instanceFile.delete()
       }
     }
@@ -33,7 +34,7 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
 
   override def receive: Receive = {
     case StartSimulation => {
-      instanceActors.foreach{
+      instanceActors.foreach {
         instanceActor => {
           instanceActor ! StatisticsActorRegistration
         }
@@ -41,7 +42,8 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
     }
 
     case Statistics(index, period, periodTuplesNum, totalTupleNums) => {
-      log.info("Statistic: instance " + index + " at " + period + " received " + periodTuplesNum)
+      log.info("Statistic: instance " + index + " at " + period + " received "
+        + periodTuplesNum + ", " + totalTupleNums + " in total")
       val record = new Array[String](2)
       record(0) = period.toString
       record(1) = totalTupleNums.toString
@@ -52,7 +54,7 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
   }
 
   override def postStop(): Unit = {
-    periodWriters.foreach{
+    periodWriters.foreach {
       periodWriter => {
         periodWriter.close()
       }
