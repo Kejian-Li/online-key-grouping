@@ -90,7 +90,6 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       if (tupleQueue.size >= m) {
         log.info("Scheduler " + index + " enters " + period + " period")
         log.info("Scheduler " + index + " assigned so far " + assignedTuplesNum + " tuples in total")
-        period += 1
         // learn
         var i = 0
         val it = tupleQueue.iterator
@@ -158,6 +157,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       assignTuple(tuple, routingTable)
       x += 1
     }
+
   }
 
   when(ASSIGN) {
@@ -168,6 +168,9 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   }
 
   onTransition {
+    case _ -> LEARN => {
+      period += 1
+    }
     case _ -> ASSIGN => {
       assign(nextStateData.tupleQueue, nextStateData.routingTable)
       self ! AssignmentCompleted // assignment in each period is completed

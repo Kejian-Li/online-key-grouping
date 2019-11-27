@@ -233,7 +233,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
       }
     }
 
-    log.info("Coordinator: make next migration table successfully, its size is: " + migrationTable.size)
+    log.info("Coordinator: make migration table successfully, its size is: " + migrationTable.size)
     migrationTable
   }
 }

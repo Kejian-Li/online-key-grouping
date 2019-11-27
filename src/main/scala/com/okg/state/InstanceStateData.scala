@@ -1,5 +1,7 @@
 package com.okg.state
 
+import com.okg.message.MigrationTable
+
 import scala.collection.mutable
 
 /**
@@ -10,4 +12,7 @@ import scala.collection.mutable
   *                  between instances of the operator. We just simply suppose that migration is completed and
   *                  schedulers use new routing table to assign tuples in the next period.
   */
-case class InstanceStateData(tuplesNum: Int, tupleMap: mutable.Map[Int, Int])
+case class InstanceStateData(period: Int,
+                             tuplesNum: Int,
+                             tupleMap: mutable.Map[Int, Int],
+                             migrationTable: MigrationTable)

@@ -15,11 +15,13 @@ import scala.collection.mutable
 class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceStateData] {
 
   var coordinatorActorRef = Actor.noSender
+  val schedulerActorsSet = mutable.Set.empty[ActorRef]
   var instanceActors = Array.empty[ActorRef]
   var periodTuplesNum = 0
 
-  startWith(RUN, new InstanceStateData(0, mutable.Map.empty[Int, Int]))
+  startWith(RUN, new InstanceStateData(0, 0, mutable.Map.empty[Int, Int], null))
 
+  var periodBarriersNum = 0
   when(RUN) {
     case Event(tuple: Tuple[Int], data: InstanceStateData) => {
       // process tuple
@@ -30,27 +32,25 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
     }
 
     case Event(startMigration: StartMigration, data: InstanceStateData) => {
-      instanceActors = startMigration.instanceActors
-      goto(MIGRATION)
+      goto(MIGRATION) using (data.copy(migrationTable = startMigration.migrationTable))
     }
   }
 
-  var period = 1
   when(MIGRATION) {
     case Event(MigrationCompleted, data: InstanceStateData) => {
       log.info("Instance " + index + " migrates successfully")
-      statisticsActor ! new Statistics(index, period, periodTuplesNum, data.tuplesNum)
+      statisticsActor ! new Statistics(index, data.period, periodTuplesNum, data.tuplesNum)
 
-      period += 1
       periodTuplesNum = 0
-      log.info("Instance " + index + " is gonna enter period " + period)
-      goto(RUN)
+      periodBarriersNum = 0
+
+      log.info("Instance " + index + " is gonna enter period " + data.period)
+      goto(RUN) using (data.copy(period = data.period + 1))
     }
   }
 
   var statisticsActor = Actor.noSender
 
-  val schedulerActorsSet = mutable.Set.empty[ActorRef]
   var receivedTerminationNotification = 0
   whenUnhandled {
     case Event(StartSimulation, data: InstanceStateData) => {
