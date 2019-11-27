@@ -87,7 +87,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
       log.info("Coordinator: next routing table:")
       nextRoutingTable.map.foreach{
         entry => {
-          log.info(entry._1 + " " + entry._2)
+          log.info(entry._1 + "  " + entry._2)
         }
       }
 
@@ -132,7 +132,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
 
     log.info("Coordinator: final buckets: ")
     for (i <- 0 to buckets.length - 1) {
-      log.info(i + " " + buckets(i))
+      log.info(i + "  " + buckets(i))
     }
     new RoutingTable(heavyHittersMapping)
   }
@@ -159,7 +159,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
     for (j <- 0 to coordinatorStateData.sketches.size - 1) {
       log.info("Coordinator: sketch " + j + "'s buckets: ")
       for (i <- 0 to k - 1) {
-        log.info(i + " " + coordinatorStateData.sketches(j).buckets(i))
+        log.info(i + "  " + coordinatorStateData.sketches(j).buckets(i))
       }
     }
 

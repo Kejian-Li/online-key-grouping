@@ -40,11 +40,11 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
       }
     }
 
-    case Statistics(index, period, tupleNums) => {
-      log.info("Statistic: instance " + index + " at " + period + " is " + tupleNums)
+    case Statistics(index, period, periodTuplesNum, totalTupleNums) => {
+      log.info("Statistic: instance " + index + " at " + period + " received " + periodTuplesNum)
       val record = new Array[String](2)
       record(0) = period.toString
-      record(1) = tupleNums.toString
+      record(1) = totalTupleNums.toString
       periodWriters(index).writeRecord(record)
       periodWriters(index).flush()
     }

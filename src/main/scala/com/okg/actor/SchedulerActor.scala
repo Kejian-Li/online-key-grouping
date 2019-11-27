@@ -32,7 +32,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     instantiateHashFunction()
   }
 
-  startWith(HASH, initializeSchedulerStateDate())
+  startWith(LEARN, initializeSchedulerStateDate())
 
   private def initializeSchedulerStateDate() = {
     new SchedulerStateData(N,
@@ -68,23 +68,6 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
 //    targetIndex = hash(key)
     instanceActors(targetIndex) ! tuple
-  }
-
-  var n = 0
-
-  when(HASH) {
-    case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
-      n += 1
-      assignTuple(tuple, schedulerStateData.routingTable)
-
-      if (n == N) {
-        log.info("Scheduler " + index + " received " + n + " tuples in total at HASH state")
-        log.info("Scheduler " + index + " is gonna LEARN state")
-        goto(LEARN)
-      } else {
-        stay()
-      }
-    }
   }
 
   // from java's HashMap to Scala's mutable.Map

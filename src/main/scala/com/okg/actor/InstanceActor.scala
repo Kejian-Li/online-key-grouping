@@ -16,15 +16,17 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
 
   var coordinatorActorRef = Actor.noSender
   var instanceActors = Array.empty[ActorRef]
+  var periodTuplesNum = 0
 
   startWith(RUN, new InstanceStateData(0, mutable.Map.empty[Int, Int]))
 
   when(RUN) {
     case Event(tuple: Tuple[Int], data: InstanceStateData) => {
-      // enqueue tuple
+      // process tuple
+      periodTuplesNum += 1
       val key = tuple.key
       data.tupleMap.update(key, data.tupleMap.getOrElse(key, 0) + 1) // virtual, no real meaning
-      stay() using (data.copy(tupleNums = data.tupleNums + 1))
+      stay() using (data.copy(tuplesNum = data.tuplesNum + 1))
     }
 
     case Event(startMigration: StartMigration, data: InstanceStateData) => {
@@ -36,10 +38,12 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
   var period = 1
   when(MIGRATION) {
     case Event(MigrationCompleted, data: InstanceStateData) => {
-      log.info("Instance " + index + " received so far " + data.tupleNums + " tuples in total")
-      statisticsActor ! new Statistics(index, period, data.tupleNums)
+      log.info("Instance " + index + " migrates successfully")
+      log.info("Instance " + index + " received so far " + data.tuplesNum + " tuples in total")
+      statisticsActor ! new Statistics(index, period, periodTuplesNum, data.tuplesNum)
 
       period += 1
+      periodTuplesNum = 0
       log.info("Instance " + index + " is gonna enter period " + period)
       goto(RUN)
     }
@@ -68,7 +72,7 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
     case Event(TerminateSimulation, data: InstanceStateData) => {
       receivedTerminationNotification += 1
       if (receivedTerminationNotification == schedulerActorsSet.size) {
-        sender() ! new Load(index, data.tupleNums) // tell simulation actor statistics
+        sender() ! new Load(index, data.tuplesNum) // tell simulation actor statistics
       }
       stay()
     }
