@@ -85,7 +85,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
       nextRoutingTable = generateRoutingTable(nextStateData)
 
       log.info("Coordinator: next routing table:")
-      nextRoutingTable.map.foreach{
+      nextRoutingTable.map.foreach {
         entry => {
           log.info(entry._1 + "  " + entry._2)
         }
@@ -96,6 +96,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
         instanceActor ! new StartMigration(instanceActors, migrationTable)
       })
     }
+
     case GENERATION -> WAIT_ALL => {
       schedulerActorsSet.foreach(schedulerActor => {
         schedulerActor ! new StartAssignment(nextRoutingTable)

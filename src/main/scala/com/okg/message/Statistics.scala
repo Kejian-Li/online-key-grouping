@@ -6,4 +6,4 @@ package com.okg.message
   * @param period current period
   * @param totalTupleNums number of tuples received so far
   */
-case class Statistics(index: Int, period: Int, periodTuplesNum: Int, totalTupleNums: Int)
+case class Statistics(index: Int, period: Int, periodTuplesNum: Int, totalTuplesNum: Int)

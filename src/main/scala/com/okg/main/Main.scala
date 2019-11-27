@@ -8,7 +8,6 @@ object Main {
 
   def main(args: Array[String]): Unit = {
 
-    val N = 1000
     val m = 10000
     val s = 3
     val k = 5
@@ -31,7 +30,7 @@ object Main {
     for (i <- 0 to s - 1) {
       schedulerActors(i) =
         system.actorOf(
-          Props(new SchedulerActor(i, N, m, k, epsilon, theta, coordinatorActorRef, instanceActors))
+          Props(new SchedulerActor(i, m, k, epsilon, theta, coordinatorActorRef, instanceActors))
             .withMailbox(my_mailbox))
     }
 

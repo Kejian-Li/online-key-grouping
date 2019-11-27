@@ -17,7 +17,6 @@ import org.apache.commons.math3.random.RandomDataGenerator
 import scala.collection.mutable
 
 class SchedulerActor(index: Int, // index of this Scheduler instance
-                     N: Int, // number of received tuples before entering COLLECT state
                      m: Int, // number of involved tuples in each period
                      k: Int, // number of Operator instances
                      epsilon: Double,
@@ -35,7 +34,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   startWith(LEARN, initializeSchedulerStateDate())
 
   private def initializeSchedulerStateDate() = {
-    new SchedulerStateData(N,
+    new SchedulerStateData(
       m,
       k,
       new SpaceSaving(epsilon, theta),
@@ -80,7 +79,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
   }
 
-  var tuplesNum = 0
+  var assignedTuplesNum = 0
   var period = 1
 
   when(LEARN) {
@@ -90,7 +89,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
       if (tupleQueue.size >= m) {
         log.info("Scheduler " + index + " enters " + period + " period")
-        log.info("Scheduler " + index + " assigned so far " + tuplesNum + " tuples in total")
+        log.info("Scheduler " + index + " assigned so far " + assignedTuplesNum + " tuples in total")
         period += 1
         // learn
         var i = 0
@@ -154,7 +153,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   def assign(tupleQueue: TupleQueue[Tuple[Int]], routingTable: RoutingTable) = {
     var x = 0
     while (x < m) {
-      tuplesNum += 1
+      assignedTuplesNum += 1
       val tuple = tupleQueue.dequeue() // return and remove first element
       assignTuple(tuple, routingTable)
       x += 1

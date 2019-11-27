@@ -1,7 +1,6 @@
 package com.okg.actor
 
-import java.io.{File, PrintWriter}
-import java.nio.file.Files
+import java.io.File
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import com.csvreader.CsvWriter
@@ -32,6 +31,9 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
     }
   }
 
+  var receivedTupleSum = 0
+  var instancesNum = 0
+
   override def receive: Receive = {
     case StartSimulation => {
       instanceActors.foreach {
@@ -41,12 +43,18 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
       }
     }
 
-    case Statistics(index, period, periodTuplesNum, totalTupleNums) => {
+    case Statistics(index, period, periodTuplesNum, totalTuplesNum) => {
       log.info("Statistic: instance " + index + " at " + period + " received "
-        + periodTuplesNum + ", " + totalTupleNums + " in total")
+        + periodTuplesNum + ", " + totalTuplesNum + " in total")
+      instancesNum += 1
+      receivedTupleSum += periodTuplesNum
+      if(instancesNum == instanceActors.length) {
+        log.info("Statistic: all the instances received " + receivedTupleSum)
+        instancesNum = 0
+      }
       val record = new Array[String](2)
       record(0) = period.toString
-      record(1) = totalTupleNums.toString
+      record(1) = totalTuplesNum.toString
       periodWriters(index).writeRecord(record)
       periodWriters(index).flush()
     }

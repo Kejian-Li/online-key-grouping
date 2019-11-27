@@ -4,8 +4,7 @@ import com.okg.message.{RoutingTable, Sketch}
 import com.okg.tuple.{Tuple, TupleQueue}
 import com.okg.util.SpaceSaving
 
-case class SchedulerStateData(N: Int,
-                              m: Int,
+case class SchedulerStateData(m: Int,
                               k: Int,
                               spaceSaving: SpaceSaving,
                               sketch: Sketch,
