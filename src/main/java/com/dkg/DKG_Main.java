@@ -33,7 +33,9 @@ public class DKG_Main {
             }
         };
 
+
         int k = 10;
+
         DKG_Storm dkg_storm = new DKG_Storm(theta, mu, learningLength, iKey);
         List<Integer> targetTasks = new ArrayList<>(k);
         for (int i = 0; i < k; i++) {
