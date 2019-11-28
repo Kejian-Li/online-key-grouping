@@ -10,8 +10,6 @@ import com.okg.tuple.{Tuple, TupleQueue}
 import com.okg.util.{SpaceSaving, TwoUniversalHash}
 import org.apache.commons.math3.random.RandomDataGenerator
 
-import com.google.common.hash.Hashing
-
 /**
   * Class for Scheduler instance
   */
@@ -54,12 +52,6 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     val b = uniformGenerator.nextLong(1, prime - 1)
     hashFunction = new TwoUniversalHash(k, prime, a, b)
   }
-
-  //  var hashFunction = Hashing.murmur3_32()
-  //
-  //  def hash(key: Int): Int = {
-  //    math.abs(hashFunction.hashInt(key).asInt()) % k
-  //  }
 
   def hash(key: Int) = {
     hashFunction.hash(key)
@@ -125,7 +117,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
             tuplesInSketch += entry._2
           }
         }
-        log.info("Instance " + index + " learns " + tuplesInSketch)
+        log.info("Scheduler " + index + " learns " + tuplesInSketch)
         assert(tuplesInSketch == m)
         coordinatorActor ! sketch
 
@@ -164,6 +156,8 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
 
     case Event(TerminateSimulation, schedulerStateData: SchedulerStateData) => {
+      log.info("Scheduler " + index + " received termination notification")
+      log.info("Scheduler " + index + " has " + schedulerStateData.tupleQueue.size + " unassigned tuples..................")
       for (i <- 0 to k - 1) {
         instanceActors(i) forward (TerminateSimulation) // forward termination notification to instances
       }

@@ -8,10 +8,10 @@ object Main {
 
   def main(args: Array[String]): Unit = {
 
-    val m = 10000
-    val s = 1
+    val m = 5000
+    val s = 3
     val k = 10
-    val theta = 0.1
+    val theta = 0.01
     val epsilon = theta / 2   // satisfy: theta > epsilon
 
     val system = ActorSystem()
