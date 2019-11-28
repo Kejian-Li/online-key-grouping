@@ -25,7 +25,7 @@ public class DKG_Main {
 
         double theta = 0.1;
         double mu = 2;
-        int learningLength = 8000;
+        int learningLength = 80000;
         IKey iKey = new IKey() {
             @Override
             public int get(List<Object> values) {
@@ -46,7 +46,7 @@ public class DKG_Main {
 
         int m = 0;
         int M = learningLength;
-        int N = 200000;
+        int N = 2000000;
         while (item != null && m < M) {
             for (int i = 0; i < item.length; i++) {
                 List<Object> tuple = new ArrayList<>(1);

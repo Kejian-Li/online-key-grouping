@@ -24,7 +24,7 @@ class SimulationActor(coordinatorActor: ActorRef,
   var receivedLoad = 0
 
   val windowsFileName = "C:\\Users\\lizi\\Desktop\\分布式流处理系统的数据分区算法研究\\dataset\\zipf_dataset\\zipf_z_2-0.csv"
-  val ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_0-8.csv"
+  val ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_2-0.csv"
   val tupleNums = new Array[Int](s)
 
   def startSimulation(): Unit = {
