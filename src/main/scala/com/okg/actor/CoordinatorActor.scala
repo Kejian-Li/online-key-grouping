@@ -41,14 +41,14 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
       log.info("Coordinator received sketch " + newStateData.sketches.size + " in total")
       if (newStateData.sketches.size == s) {
         log.info("Coordinator is gonna GENERATION state")
-        goto(GENERATION) using (newStateData)
+        goto(COMPILE) using (newStateData)
       } else {
         stay() using (newStateData)
       }
     }
   }
 
-  when(GENERATION) {
+  when(COMPILE) {
     case Event(MigrationCompleted, coordinatorStateData: CoordinatorStateData) => {
       coordinatorStateData.migrationCompletedNotifications += 1
 
@@ -81,7 +81,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
   }
 
   onTransition {
-    case WAIT_ALL -> GENERATION => {
+    case WAIT_ALL -> COMPILE => {
       nextRoutingTable = generateRoutingTable(nextStateData)
 
       log.info("Coordinator: next routing table:")
@@ -97,7 +97,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
       })
     }
 
-    case GENERATION -> WAIT_ALL => {
+    case COMPILE -> WAIT_ALL => {
       schedulerActorsSet.foreach(schedulerActor => {
         schedulerActor ! new StartAssignment(nextRoutingTable)
       })
@@ -131,7 +131,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
     log.info("Coordinator: build global mapping function successfully")
     log.info("Coordinator: next routing table size is: " + heavyHittersMapping.size)
 
-    log.info("Coordinator: final buckets: ")
+    log.info("Coordinator: final buckets will be: ")
     for (i <- 0 to buckets.length - 1) {
       log.info(i + "  " + buckets(i))
     }

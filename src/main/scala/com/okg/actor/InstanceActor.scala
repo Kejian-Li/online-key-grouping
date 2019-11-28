@@ -17,18 +17,30 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
   var coordinatorActorRef = Actor.noSender
   val schedulerActorsSet = mutable.Set.empty[ActorRef]
   var instanceActors = Array.empty[ActorRef]
-  var periodTuplesNum = 0
+  var receivedPeriodTuplesNum = 0
 
   startWith(RUN, new InstanceStateData(0, 0, mutable.Map.empty[Int, Int], null))
 
-  var periodBarriersNum = 0
+  var receivedPeriodBarriersNum = 0
   when(RUN) {
     case Event(tuple: Tuple[Int], data: InstanceStateData) => {
       // process tuple
-      periodTuplesNum += 1
+      receivedPeriodTuplesNum += 1
       val key = tuple.key
       data.tupleMap.update(key, data.tupleMap.getOrElse(key, 0) + 1) // virtual, no real meaning
+
       stay() using (data.copy(tuplesNum = data.tuplesNum + 1))
+    }
+
+    case Event(periodBarrier: PeriodBarrier, data: InstanceStateData) => {
+      receivedPeriodBarriersNum += 1
+      if (receivedPeriodBarriersNum == schedulerActorsSet.size) {
+        statisticsActor ! new Statistics(index, data.period, receivedPeriodTuplesNum, data.tuplesNum)
+
+        receivedPeriodTuplesNum = 0
+        receivedPeriodBarriersNum = 0
+      }
+      stay()
     }
 
     case Event(startMigration: StartMigration, data: InstanceStateData) => {
@@ -39,12 +51,7 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
   when(MIGRATION) {
     case Event(MigrationCompleted, data: InstanceStateData) => {
       log.info("Instance " + index + " migrates successfully")
-      statisticsActor ! new Statistics(index, data.period, periodTuplesNum, data.tuplesNum)
 
-      periodTuplesNum = 0
-      periodBarriersNum = 0
-
-      log.info("Instance " + index + " is gonna enter period " + data.period)
       goto(RUN) using (data.copy(period = data.period + 1))
     }
   }
@@ -83,6 +90,7 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
       self ! MigrationCompleted
     }
     case MIGRATION -> RUN => {
+      log.info("Instance " + index + " is gonna enter period " + nextStateData.period)
       coordinatorActorRef ! MigrationCompleted
     }
   }

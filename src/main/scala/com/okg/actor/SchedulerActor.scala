@@ -10,6 +10,8 @@ import com.okg.tuple.{Tuple, TupleQueue}
 import com.okg.util.{SpaceSaving, TwoUniversalHash}
 import org.apache.commons.math3.random.RandomDataGenerator
 
+import com.google.common.hash.Hashing
+
 /**
   * Class for Scheduler instance
   */
@@ -24,12 +26,12 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
                      coordinatorActor: ActorRef,
                      instanceActors: Array[ActorRef]) extends Actor with FSM[SchedulerState, SchedulerStateData] {
 
-  var hashFunction: TwoUniversalHash = null
-
-  //initialize
-  override def preStart(): Unit = {
-    instantiateHashFunction()
-  }
+//  var hashFunction: TwoUniversalHash = null
+//
+//  //initialize
+//  override def preStart(): Unit = {
+//    instantiateHashFunction()
+//  }
 
   startWith(LEARN, initializeSchedulerStateDate())
 
@@ -43,18 +45,20 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       new TupleQueue[Tuple[Int]])
   }
 
-  private def instantiateHashFunction() = {
-    val uniformGenerator = new RandomDataGenerator()
-    uniformGenerator.reSeed(1000)
+//  private def instantiateHashFunction() = {
+////    val uniformGenerator = new RandomDataGenerator()
+////    uniformGenerator.reSeed(1000)
+////
+////    val prime = 10000019L
+////    val a = uniformGenerator.nextLong(1, prime - 1)
+////    val b = uniformGenerator.nextLong(1, prime - 1)
+////    hashFunction = new TwoUniversalHash(k, prime, a, b)
+//  }
 
-    val prime = 10000019L
-    val a = uniformGenerator.nextLong(1, prime - 1)
-    val b = uniformGenerator.nextLong(1, prime - 1)
-    hashFunction = new TwoUniversalHash(k, prime, a, b)
-  }
+  var hashFunction = Hashing.murmur3_32()
 
   def hash(key: Int): Int = {
-    hashFunction.hash(key)
+    math.abs(hashFunction.hashInt(key).asInt()) % k
   }
 
   def assignTuple(tuple: Tuple[Int], routingTable: RoutingTable) = {
@@ -79,7 +83,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
   }
 
-  var assignedTuplesNum = 0
+  var assignedTotalTuplesNum = 0
   var period = 1
 
   when(LEARN) {
@@ -89,7 +93,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
       if (tupleQueue.size >= m) {
         log.info("Scheduler " + index + " enters " + period + " period")
-        log.info("Scheduler " + index + " assigned so far " + assignedTuplesNum + " tuples in total")
+        log.info("Scheduler " + index + " assigned so far " + assignedTotalTuplesNum + " tuples in total")
         // learn
         var i = 0
         val it = tupleQueue.iterator
@@ -149,15 +153,23 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
   }
 
+  def assignPeriodBarrier() = {
+    instanceActors.foreach{
+      instanceActor => {
+        instanceActor ! new PeriodBarrier(index, period)
+      }
+    }
+  }
+
   def assign(tupleQueue: TupleQueue[Tuple[Int]], routingTable: RoutingTable) = {
     var x = 0
     while (x < m) {
-      assignedTuplesNum += 1
+      assignedTotalTuplesNum += 1
       val tuple = tupleQueue.dequeue() // return and remove first element
       assignTuple(tuple, routingTable)
       x += 1
     }
-
+    assignPeriodBarrier()
   }
 
   when(ASSIGN) {

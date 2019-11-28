@@ -10,5 +10,6 @@ libraryDependencies ++= Seq (
   "com.typesafe.akka" %% "akka-testkit" % "2.5.10" % "test",
   "org.scalatest" %% "scalatest" % "3.0.8" % "test",
   "org.apache.commons" % "commons-math3" % "3.6.1",
-  "net.sourceforge.javacsv" % "javacsv" % "2.0"
+  "net.sourceforge.javacsv" % "javacsv" % "2.0",
+  "com.google.guava" % "guava" % "23.0"
 )
