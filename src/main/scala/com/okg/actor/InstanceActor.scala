@@ -35,6 +35,8 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
     case Event(periodBarrier: PeriodBarrier, data: InstanceStateData) => {
       receivedPeriodBarriersNum += 1
       if (receivedPeriodBarriersNum == schedulerActorsSet.size) {
+
+        log.info("Instance " + index + " received all the barriers and sends statistic of period " + periodBarrier.period)
         statisticsActor ! new Statistics(index, data.period, receivedPeriodTuplesNum, data.tuplesNum)
 
         receivedPeriodTuplesNum = 0

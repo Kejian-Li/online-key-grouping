@@ -40,7 +40,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
       val newStateData = coordinatorStateData.copy(sketches = coordinatorStateData.sketches :+ sketch)
       log.info("Coordinator received sketch " + newStateData.sketches.size + " in total")
       if (newStateData.sketches.size == s) {
-        log.info("Coordinator is gonna GENERATION state")
+        log.info("Coordinator is gonna COMPILE state")
         goto(COMPILE) using (newStateData)
       } else {
         stay() using (newStateData)

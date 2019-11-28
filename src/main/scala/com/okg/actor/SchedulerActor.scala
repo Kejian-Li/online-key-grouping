@@ -26,12 +26,12 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
                      coordinatorActor: ActorRef,
                      instanceActors: Array[ActorRef]) extends Actor with FSM[SchedulerState, SchedulerStateData] {
 
-//  var hashFunction: TwoUniversalHash = null
-//
-//  //initialize
-//  override def preStart(): Unit = {
-//    instantiateHashFunction()
-//  }
+  //  var hashFunction: TwoUniversalHash = null
+  //
+  //  //initialize
+  //  override def preStart(): Unit = {
+  //    instantiateHashFunction()
+  //  }
 
   startWith(LEARN, initializeSchedulerStateDate())
 
@@ -45,15 +45,15 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       new TupleQueue[Tuple[Int]])
   }
 
-//  private def instantiateHashFunction() = {
-////    val uniformGenerator = new RandomDataGenerator()
-////    uniformGenerator.reSeed(1000)
-////
-////    val prime = 10000019L
-////    val a = uniformGenerator.nextLong(1, prime - 1)
-////    val b = uniformGenerator.nextLong(1, prime - 1)
-////    hashFunction = new TwoUniversalHash(k, prime, a, b)
-//  }
+  //  private def instantiateHashFunction() = {
+  ////    val uniformGenerator = new RandomDataGenerator()
+  ////    uniformGenerator.reSeed(1000)
+  ////
+  ////    val prime = 10000019L
+  ////    val a = uniformGenerator.nextLong(1, prime - 1)
+  ////    val b = uniformGenerator.nextLong(1, prime - 1)
+  ////    hashFunction = new TwoUniversalHash(k, prime, a, b)
+  //  }
 
   var hashFunction = Hashing.murmur3_32()
 
@@ -69,23 +69,27 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     } else {
       targetIndex = hash(key)
     }
-//    targetIndex = hash(key)
+    //    targetIndex = hash(key)
     instanceActors(targetIndex) ! tuple
   }
 
   // from java's HashMap to Scala's mutable.Map
+  // buckets subtract heavy hitters
   def putHeavyHittersIntoSketch(rawHeavyHitters: util.HashMap[Integer, Integer], sketch: Sketch) = {
     val it = rawHeavyHitters.entrySet().iterator()
 
     while (it.hasNext) {
       val entry = it.next()
       sketch.heavyHitters.put(entry.getKey, entry.getValue)
+      val targetIndex = hash(entry.getKey)
+      sketch.buckets.update(targetIndex, sketch.buckets(targetIndex) - entry.getValue)
     }
   }
 
   var assignedTotalTuplesNum = 0
   var period = 1
 
+  var i = 0
   when(LEARN) {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
       val tupleQueue = schedulerStateData.tupleQueue
@@ -95,7 +99,6 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
         log.info("Scheduler " + index + " enters " + period + " period")
         log.info("Scheduler " + index + " assigned so far " + assignedTotalTuplesNum + " tuples in total")
         // learn
-        var i = 0
         val it = tupleQueue.iterator
         while (i < m) {
           val tuple = it.next() // return but don't remove
@@ -109,6 +112,17 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
         val rawHeavyHittersMap = schedulerStateData.spaceSaving.getHeavyHitters
         putHeavyHittersIntoSketch(rawHeavyHittersMap, schedulerStateData.sketch)
         val sketch = new Sketch(schedulerStateData.sketch.heavyHitters.clone(), schedulerStateData.sketch.buckets.clone())
+
+        //check sketch
+        var tuplesInSketch = 0
+        tuplesInSketch += sketch.buckets.sum
+        sketch.heavyHitters.foreach {
+          entry => {
+            tuplesInSketch += entry._2
+          }
+        }
+        log.info("Instance " + index + " learns " + tuplesInSketch)
+        assert(tuplesInSketch == m)
         coordinatorActor ! sketch
 
         log.info("Scheduler " + index + " send sketch successfully")
@@ -154,7 +168,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   }
 
   def assignPeriodBarrier() = {
-    instanceActors.foreach{
+    instanceActors.foreach {
       instanceActor => {
         instanceActor ! new PeriodBarrier(index, period)
       }
@@ -181,6 +195,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
   onTransition {
     case _ -> LEARN => {
+      i = 0
       period += 1
     }
     case _ -> ASSIGN => {
