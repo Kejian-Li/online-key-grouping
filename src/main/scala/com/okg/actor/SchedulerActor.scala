@@ -26,12 +26,12 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
                      coordinatorActor: ActorRef,
                      instanceActors: Array[ActorRef]) extends Actor with FSM[SchedulerState, SchedulerStateData] {
 
-  //  var hashFunction: TwoUniversalHash = null
-  //
-  //  //initialize
-  //  override def preStart(): Unit = {
-  //    instantiateHashFunction()
-  //  }
+  var hashFunction: TwoUniversalHash = null
+
+  //initialize
+  override def preStart(): Unit = {
+    instantiateHashFunction()
+  }
 
   startWith(LEARN, initializeSchedulerStateDate())
 
@@ -45,20 +45,24 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       new TupleQueue[Tuple[Int]])
   }
 
-  //  private def instantiateHashFunction() = {
-  ////    val uniformGenerator = new RandomDataGenerator()
-  ////    uniformGenerator.reSeed(1000)
-  ////
-  ////    val prime = 10000019L
-  ////    val a = uniformGenerator.nextLong(1, prime - 1)
-  ////    val b = uniformGenerator.nextLong(1, prime - 1)
-  ////    hashFunction = new TwoUniversalHash(k, prime, a, b)
+  private def instantiateHashFunction() = {
+    val uniformGenerator = new RandomDataGenerator()
+    uniformGenerator.reSeed(1000)
+
+    val prime = 10000019L
+    val a = uniformGenerator.nextLong(1, prime - 1)
+    val b = uniformGenerator.nextLong(1, prime - 1)
+    hashFunction = new TwoUniversalHash(k, prime, a, b)
+  }
+
+  //  var hashFunction = Hashing.murmur3_32()
+  //
+  //  def hash(key: Int): Int = {
+  //    math.abs(hashFunction.hashInt(key).asInt()) % k
   //  }
 
-  var hashFunction = Hashing.murmur3_32()
-
-  def hash(key: Int): Int = {
-    math.abs(hashFunction.hashInt(key).asInt()) % k
+  def hash(key: Int) = {
+    hashFunction.hash(key)
   }
 
   def assignTuple(tuple: Tuple[Int], routingTable: RoutingTable) = {

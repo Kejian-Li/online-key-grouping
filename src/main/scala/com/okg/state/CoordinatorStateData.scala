@@ -10,4 +10,5 @@ import com.okg.message.{RoutingTable, Sketch}
   */
 case class CoordinatorStateData(currentRoutingTable: RoutingTable,
                                 sketches: List[Sketch],
-                                var migrationCompletedNotifications: Int)
+                                var migrationCompletedNotifications: Int,
+                                historicalBuckets: Array[Int])

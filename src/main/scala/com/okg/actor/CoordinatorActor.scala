@@ -25,12 +25,11 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
   val schedulerActorsSet = mutable.Set.empty[ActorRef]
   var nextRoutingTable = new RoutingTable(mutable.Map.empty[Int, Int]) // empty routing table
 
-  val coordinatorStateData = new CoordinatorStateData(
+  startWith(WAIT_ALL, new CoordinatorStateData(
     new RoutingTable(mutable.Map.empty[Int, Int]),
     List.empty[Sketch],
-    0)
-
-  startWith(WAIT_ALL, coordinatorStateData)
+    0,
+    new Array[Int](k)))
 
   when(WAIT_ALL) {
     case Event(sketch: Sketch, coordinatorStateData: CoordinatorStateData) => {
@@ -59,7 +58,8 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
           log.info("Coordinator: new routing table size is " + nextRoutingTable.size())
         }
         goto(WAIT_ALL) using (
-          new CoordinatorStateData(nextRoutingTable, List.empty[Sketch], 0))
+          new CoordinatorStateData(nextRoutingTable, List.empty[Sketch],
+            0, historicalBuckets))
       } else {
         stay()
       }
@@ -116,30 +116,38 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
     minIndex
   }
 
+  var historicalBuckets: Array[Int] = null
   // build global mapping and return routing table
+  // update historicalBuckets of CoordinatorStateData
   def buildGlobalMappingFunction(heavyHitters: Seq[(Int, Int)], //  (key, frequency)
-                                 buckets: Array[Int]) = {
+                                 buckets: Array[Int],
+                                 coordinatorStateData: CoordinatorStateData) = {
+    historicalBuckets = coordinatorStateData.historicalBuckets.clone()
+    for (i <- 0 to k - 1) {
+      historicalBuckets.update(i, historicalBuckets(i) + buckets(i))
+    }
+
     val heavyHittersMapping = mutable.Map.empty[Int, Int]
     heavyHitters.foreach(
       entry => {
         val key = entry._1
-        val leastIndex = findLeastLoad(buckets)
-        buckets.update(leastIndex, buckets(leastIndex) + entry._2)
+        val leastIndex = findLeastLoad(historicalBuckets)
+        historicalBuckets.update(leastIndex, historicalBuckets(leastIndex) + entry._2)
         heavyHittersMapping.put(key, leastIndex)
       }
     )
     log.info("Coordinator: build global mapping function successfully")
     log.info("Coordinator: next routing table size is: " + heavyHittersMapping.size)
 
-    log.info("Coordinator: final buckets will be: ")
-    for (i <- 0 to buckets.length - 1) {
-      log.info(i + "  " + buckets(i))
+    log.info("Coordinator: historical buckets will be: ")
+    for (i <- 0 to historicalBuckets.length - 1) {
+      log.info(i + "  " + historicalBuckets(i))
     }
+
     new RoutingTable(heavyHittersMapping)
   }
 
-  // generate a new routing table
-  def generateRoutingTable(coordinatorStateData: CoordinatorStateData): RoutingTable = {
+  def cumulateSketches(coordinatorStateData: CoordinatorStateData) = {
     val cumulativeHeavyHittersMap = mutable.TreeMap.empty[Int, Int]
     val cumulativeBuckets = new Array[Int](k)
 
@@ -192,7 +200,14 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
       log.info(i + " " + cumulativeBuckets(i))
     }
 
-    val descendingHeavyHittersMap = cumulativeHeavyHittersMap.toSeq.sortWith(_._2 > _._2)
+    new Sketch(cumulativeHeavyHittersMap, cumulativeBuckets)
+
+  }
+
+  // generate a new routing table
+  def generateRoutingTable(coordinatorStateData: CoordinatorStateData): RoutingTable = {
+    val cumulativeSketch = cumulateSketches(coordinatorStateData)
+    val descendingHeavyHittersMap = cumulativeSketch.heavyHitters.toSeq.sortWith(_._2 > _._2)
 
     log.info("Coordinator: " + "cumulative heavy hitter in the descending order: ")
     descendingHeavyHittersMap.foreach {
@@ -201,7 +216,7 @@ case class CoordinatorActor(s: Int, // number of Scheduler instances
       }
     }
 
-    buildGlobalMappingFunction(descendingHeavyHittersMap, cumulativeBuckets)
+    buildGlobalMappingFunction(descendingHeavyHittersMap, cumulativeSketch.buckets, coordinatorStateData)
   }
 
   // compare currentRoutingTable with nextRoutingTable to make migration table
