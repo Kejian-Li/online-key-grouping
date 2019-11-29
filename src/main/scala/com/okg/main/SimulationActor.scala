@@ -32,7 +32,7 @@ class SimulationActor(coordinatorActor: ActorRef,
     val inFileName = ubuntuFileName
 
     val csvItemReader = new CsvItemReader(new CsvReader(inFileName))
-    var item = csvItemReader.nextItem()
+    var items = csvItemReader.nextItem()
     var sourceIndex = 0
 
     // Simulation starts...
@@ -42,9 +42,9 @@ class SimulationActor(coordinatorActor: ActorRef,
 
     statisticsActor ! StartSimulation
 
-    while (item != null) {
-      for (i <- 0 to item.size - 1) {
-        schedulerActors(sourceIndex) ! new Tuple[Int](item(i).toInt)
+    while (items != null) {
+      for (i <- 0 to items.size - 1) {
+        schedulerActors(sourceIndex) ! new Tuple[Int](items(i).toInt)
         tupleNums(sourceIndex) += 1
 
         sourceIndex += 1
@@ -52,7 +52,7 @@ class SimulationActor(coordinatorActor: ActorRef,
           sourceIndex = 0
         }
       }
-      item = csvItemReader.nextItem()
+      items = csvItemReader.nextItem()
     }
 
     // Simulation terminates...

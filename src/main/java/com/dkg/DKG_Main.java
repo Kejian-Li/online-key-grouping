@@ -23,11 +23,11 @@ public class DKG_Main {
             e.printStackTrace();
         }
         CsvItemReader csvItemReader = new CsvItemReader(csvReader);
-        String[] item = csvItemReader.nextItem();
+        String[] items = csvItemReader.nextItem();
 
         double theta = 0.1;
         double mu = 2;
-        int learningLength = 50000000;
+        int learningLength = 5000000;
         IKey iKey = new IKey() {
             @Override
             public int get(List<Object> values) {
@@ -49,25 +49,25 @@ public class DKG_Main {
         int m = 0;
         // learn
         int M = learningLength;
-        while (item != null && m < M) {
-            for (int i = 0; i < item.length; i++) {
+        while (items != null && m < M) {
+            for (int i = 0; i < items.length; i++) {
                 List<Object> tuple = new ArrayList<>(1);
-                tuple.add(item[i]);
+                tuple.add(items[i]);
                 dkg_storm.chooseTasks(-1, tuple);
                 m++;
                 System.out.println("DKG learns " + m + " tuples");
             }
-            item = csvItemReader.nextItem();
+            items = csvItemReader.nextItem();
         }
 
         int[] buckets = new int[k];
 
         m = 0;
         csvItemReader.nextItem();
-        String[] items = csvItemReader.nextItem();
+        items = csvItemReader.nextItem();
 
         // assign
-        int N = 50000000;
+        int N = 5000000;
         while (items != null && m < N) {
             for (int i = 0; i < items.length; i++) {
                 List<Object> tuple = new ArrayList<>(1);

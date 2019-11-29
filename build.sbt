@@ -12,6 +12,7 @@ libraryDependencies ++= Seq(
   "org.apache.commons" % "commons-math3" % "3.6.1",
   "net.sourceforge.javacsv" % "javacsv" % "2.0",
   "org.apache.storm" % "storm-core" % "1.0.0" % "provided",
-  "org.apache.commons" % "commons-math3" % "3.6.1"
+  "org.apache.commons" % "commons-math3" % "3.6.1",
+  "com.google.guava" % "guava" % "23.0"
 
 )
