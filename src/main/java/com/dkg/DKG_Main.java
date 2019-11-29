@@ -11,8 +11,9 @@ public class DKG_Main {
 
     public static void main(String[] args) {
 
-        String windowsFileName = "C:\\Users\\lizi\\Desktop\\分布式流处理系统的数据分区算法研究\\dataset\\zipf_dataset\\zipf_z_2-0.csv";
-        String ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_2-0.csv";
+        String windowsFileName = "C:\\Users\\lizi\\Desktop\\thesis_workspace\\OKG_workspace\\OKG_data\\" +
+                "Zipf_Data\\Unfixed_Distribution\\zipf_z_unfixed_data.csv";
+        String ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_unfixed_data.csv";
 
         String inFileName = windowsFileName;
         CsvReader csvReader = null;
@@ -26,7 +27,7 @@ public class DKG_Main {
 
         double theta = 0.1;
         double mu = 2;
-        int learningLength = 50000;
+        int learningLength = 50000000;
         IKey iKey = new IKey() {
             @Override
             public int get(List<Object> values) {
@@ -46,9 +47,8 @@ public class DKG_Main {
         dkg_storm.prepare(null, null, targetTasks);
 
         int m = 0;
-        int M = learningLength;
-        int N = 50000;
         // learn
+        int M = learningLength;
         while (item != null && m < M) {
             for (int i = 0; i < item.length; i++) {
                 List<Object> tuple = new ArrayList<>(1);
@@ -63,31 +63,33 @@ public class DKG_Main {
         int[] buckets = new int[k];
 
         m = 0;
-//        csvItemReader.nextItem();
-//        String[] items = csvItemReader.nextItem();
-//        // assign
-//        while (items != null && m < N) {
-//            for (int i = 0; i < items.length; i++) {
-//                List<Object> tuple = new ArrayList<>(1);
-//                tuple.add(items[i]);
-//                List<Integer> target = dkg_storm.chooseTasks(-1, tuple);
-//                int targetIndex = target.get(0);
-//                buckets[targetIndex] += 1;
-//                m++;
-//            }
-//            items = csvItemReader.nextItem();
-//        }
+        csvItemReader.nextItem();
+        String[] items = csvItemReader.nextItem();
 
-        ZipfDataGenerator zipfDataGenerator = new ZipfDataGenerator();
-        while(m < N) {
-            int x = zipfDataGenerator.sample();
-            List<Object> tuple = new ArrayList<>(1);
-            tuple.add(x);
-            List<Integer> target = dkg_storm.chooseTasks(-1, tuple);
-            int targetIndex = target.get(0);
-            buckets[targetIndex] += 1;
-            m++;
+        // assign
+        int N = 50000000;
+        while (items != null && m < N) {
+            for (int i = 0; i < items.length; i++) {
+                List<Object> tuple = new ArrayList<>(1);
+                tuple.add(items[i]);
+                List<Integer> target = dkg_storm.chooseTasks(-1, tuple);
+                int targetIndex = target.get(0);
+                buckets[targetIndex] += 1;
+                m++;
+            }
+            items = csvItemReader.nextItem();
         }
+
+//        ZipfDataGenerator zipfDataGenerator = new ZipfDataGenerator();
+//        while(m < N) {
+//            int x = zipfDataGenerator.sample();
+//            List<Object> tuple = new ArrayList<>(1);
+//            tuple.add(x);
+//            List<Integer> target = dkg_storm.chooseTasks(-1, tuple);
+//            int targetIndex = target.get(0);
+//            buckets[targetIndex] += 1;
+//            m++;
+//        }
 
         int loadSum = buckets[0];
         int maxLoad = buckets[0];
