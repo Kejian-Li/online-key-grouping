@@ -100,6 +100,7 @@ public class DKG_Storm implements Serializable {
     }
 
 
+//    @Override
     public void prepare(WorkerTopologyContext context, GlobalStreamId stream, List<Integer> targetTasks) {
 
         this.targetTasks = targetTasks;
@@ -111,6 +112,7 @@ public class DKG_Storm implements Serializable {
     }
 
 
+//    @Override
     public List<Integer> chooseTasks(int taskId, List<Object> values) {
 
         List<Integer> ret = new ArrayList<Integer>(1);

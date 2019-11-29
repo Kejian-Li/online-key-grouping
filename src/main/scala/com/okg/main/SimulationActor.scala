@@ -54,6 +54,8 @@ class SimulationActor(coordinatorActor: ActorRef,
       item = csvItemReader.nextItem()
     }
 
+
+
     // Simulation terminates...
     log.info("Send simulation termination notification...")
     for (i <- 0 to s - 1) {
