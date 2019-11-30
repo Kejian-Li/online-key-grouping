@@ -11,13 +11,13 @@ import java.io.FileNotFoundException;
 
 public class Hash_Main {
 
-    private static final int k = 5;
+    private static final int k = 10;
     private static TwoUniversalHash twoUniversalHash;
     private static HashFunction murmurHash;
 
     public static void main(String[] args) {
         String windowsFileName = "C:\\Users\\lizi\\Desktop\\thesis_workspace\\OKG_workspace\\OKG_data\\" +
-                "Zipf_Data\\Unfixed_Distribution\\zipf_z_unfixed_data.csv";
+                "Zipf_Data\\Fixed_Distribution\\zipf_z_2-8.csv";
         String ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_unfixed_data.csv";
 
         String inFileName = windowsFileName;
@@ -60,7 +60,7 @@ public class Hash_Main {
         int averageLoad = loadSum / k;
         System.out.println("Average load is " + averageLoad);
         double imbalance = ((maxLoad / (double) averageLoad) - 1) * 100;
-        System.out.println("DKG's imbalance is " + imbalance + "%");
+        System.out.println("HASH's imbalance is " + imbalance + "%");
     }
 
     private static TwoUniversalHash initializeTwoUniversalHash() {

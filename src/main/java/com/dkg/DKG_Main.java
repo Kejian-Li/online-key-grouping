@@ -12,7 +12,7 @@ public class DKG_Main {
     public static void main(String[] args) {
 
         String windowsFileName = "C:\\Users\\lizi\\Desktop\\thesis_workspace\\OKG_workspace\\OKG_data\\" +
-                "Zipf_Data\\Unfixed_Distribution\\zipf_z_unfixed_data.csv";
+                "Zipf_Data\\Fixed_Distribution\\zipf_z_3-0.csv";
         String ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_unfixed_data.csv";
 
         String inFileName = windowsFileName;
@@ -27,7 +27,7 @@ public class DKG_Main {
 
         double theta = 0.1;
         double mu = 2;
-        int learningLength = 5000000;
+        int learningLength = 80000;
         IKey iKey = new IKey() {
             @Override
             public int get(List<Object> values) {
@@ -67,7 +67,7 @@ public class DKG_Main {
         items = csvItemReader.nextItem();
 
         // assign
-        int N = 5000000;
+        int N = 20000;
         while (items != null && m < N) {
             for (int i = 0; i < items.length; i++) {
                 List<Object> tuple = new ArrayList<>(1);

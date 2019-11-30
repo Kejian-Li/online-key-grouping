@@ -4,7 +4,7 @@ import java.util
 
 import akka.actor.{Actor, ActorRef, FSM}
 import com.okg.message._
-import com.okg.message.communication.{AssignmentCompleted, StartSimulation, TerminateSimulation}
+import com.okg.message.communication.{AssignmentCompleted, LearnCompleted, StartSimulation, TerminateSimulation}
 import com.okg.state._
 import com.okg.tuple.{Tuple, TupleQueue}
 import com.okg.util.{SpaceSaving, TwoUniversalHash}
@@ -31,7 +31,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     instantiateHashFunction()
   }
 
-  startWith(LEARN, initializeSchedulerStateDate())
+  startWith(COLLECT, initializeSchedulerStateDate())
 
   private def initializeSchedulerStateDate() = {
     new SchedulerStateData(
@@ -65,7 +65,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     } else {
       targetIndex = hash(key)
     }
-//        targetIndex = hash(key)
+    //        targetIndex = hash(key)
     instanceActors(targetIndex) ! tuple
   }
 
@@ -86,49 +86,65 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   var period = 1
 
   var i = 0
-  when(LEARN) {
+  var learnNum = m
+
+  def learn(schedulerStateData: SchedulerStateData) = {
+    val tupleQueue = schedulerStateData.tupleQueue
+
+    // learn
+    if (tupleQueue.size < m) {
+      learnNum = tupleQueue.size
+    }
+    val it = tupleQueue.iterator
+    while (i < learnNum) {
+      val tuple = it.next() // return but don't remove
+      val key = tuple.key
+      schedulerStateData.spaceSaving.newSample(key)
+      val targetIndex = hash(key)
+      schedulerStateData.sketch.buckets.update(targetIndex, schedulerStateData.sketch.buckets(targetIndex) + 1)
+      i += 1
+    }
+    // make and send sketch
+    val rawHeavyHittersMap = schedulerStateData.spaceSaving.getHeavyHitters
+    putHeavyHittersIntoSketch(rawHeavyHittersMap, schedulerStateData.sketch)
+    val sketch = new Sketch(schedulerStateData.sketch.heavyHitters.clone(), schedulerStateData.sketch.buckets.clone())
+
+    //check sketch
+    var tuplesInSketch = 0
+    tuplesInSketch += sketch.buckets.sum
+    sketch.heavyHitters.foreach {
+      entry => {
+        tuplesInSketch += entry._2
+      }
+    }
+    log.info("Scheduler " + index + " learns " + tuplesInSketch)
+    assert(tuplesInSketch == m)
+
+    sketch
+  }
+
+  when(COLLECT) {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
-      val tupleQueue = schedulerStateData.tupleQueue
-      tupleQueue += tuple
-
-      if (tupleQueue.size >= m) {
-        log.info("Scheduler " + index + " enters " + period + " period")
-        log.info("Scheduler " + index + " assigned so far " + assignedTotalTuplesNum + " tuples in total")
-        // learn
-        val it = tupleQueue.iterator
-        while (i < m) {
-          val tuple = it.next() // return but don't remove
-          val key = tuple.key
-          schedulerStateData.spaceSaving.newSample(key)
-          val targetIndex = hash(key)
-          schedulerStateData.sketch.buckets.update(targetIndex, schedulerStateData.sketch.buckets(targetIndex) + 1)
-          i += 1
-        }
-        // make and send sketch
-        val rawHeavyHittersMap = schedulerStateData.spaceSaving.getHeavyHitters
-        putHeavyHittersIntoSketch(rawHeavyHittersMap, schedulerStateData.sketch)
-        val sketch = new Sketch(schedulerStateData.sketch.heavyHitters.clone(), schedulerStateData.sketch.buckets.clone())
-
-        //check sketch
-        var tuplesInSketch = 0
-        tuplesInSketch += sketch.buckets.sum
-        sketch.heavyHitters.foreach {
-          entry => {
-            tuplesInSketch += entry._2
-          }
-        }
-        log.info("Scheduler " + index + " learns " + tuplesInSketch)
-        assert(tuplesInSketch == m)
-        coordinatorActor ! sketch
-
-        log.info("Scheduler " + index + " send sketch successfully")
-
-        log.info("Scheduler " + index + " is gonna WAIT state")
-        goto(WAIT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta),
-          sketch = new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k))))
-      } else {
+      schedulerStateData.tupleQueue += tuple
+      if(schedulerStateData.tupleQueue.size > m) {
+        goto(LEARN)
+      }else {
         stay()
       }
+    }
+  }
+
+  when(LEARN) {
+
+    case Event(learnCompleted: LearnCompleted, schedulerStateData: SchedulerStateData) => {
+
+      coordinatorActor ! learnCompleted.sketch
+
+      log.info("Scheduler " + index + " send sketch successfully")
+      log.info("Scheduler " + index + " is gonna WAIT state")
+
+      goto(WAIT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta),
+        sketch = new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k))))
     }
 
   }
@@ -195,7 +211,13 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     case _ -> LEARN => {
       i = 0
       period += 1
+      log.info("Scheduler " + index + " enters " + period + " period")
+      log.info("Scheduler " + index + " assigned so far " + assignedTotalTuplesNum + " tuples in total")
+
+      val sketch = learn(nextStateData)
+      self ! new LearnCompleted(sketch)
     }
+
     case _ -> ASSIGN => {
       assign(nextStateData.tupleQueue, nextStateData.routingTable)
       self ! AssignmentCompleted // assignment in each period is completed
