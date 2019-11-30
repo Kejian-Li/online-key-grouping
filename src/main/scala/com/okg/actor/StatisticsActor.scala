@@ -57,9 +57,7 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
       record(1) = totalTuplesNum.toString
       periodWriters(index).writeRecord(record)
       periodWriters(index).flush()
-      if (period == 333) {
 
-      }
     }
 
   }

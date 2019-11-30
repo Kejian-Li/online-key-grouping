@@ -33,6 +33,8 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
     }
 
     case Event(periodBarrier: PeriodBarrier, data: InstanceStateData) => {
+      assert(periodBarrier.period == data.period)
+
       receivedPeriodBarriersNum += 1
       if (receivedPeriodBarriersNum == schedulerActorsSet.size) {
 
