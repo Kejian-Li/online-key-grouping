@@ -10,7 +10,7 @@ import com.okg.tuple.Tuple
 import scala.collection.mutable
 
 /**
-  * Class for Operator instance
+  * Actor for Operator instance
   */
 class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceStateData] {
 

@@ -11,7 +11,7 @@ import com.okg.util.{SpaceSaving, TwoUniversalHash}
 import org.apache.commons.math3.random.RandomDataGenerator
 
 /**
-  * Class for Scheduler instance
+  * Actor for Scheduler instance
   */
 
 import scala.collection.mutable
@@ -85,18 +85,26 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   var assignedTotalTuplesNum = 0
   var period = 1
 
+  when(COLLECT) {
+    case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
+      schedulerStateData.tupleQueue += tuple
+      if (schedulerStateData.tupleQueue.size > m) {
+        log.info("Scheduler " + index + ": " + "collects successfully and is gonna LEARN state")
+        goto(LEARN)
+      } else {
+        stay()
+      }
+    }
+  }
+
   var i = 0
-  var learnNum = m
 
   def learn(schedulerStateData: SchedulerStateData) = {
     val tupleQueue = schedulerStateData.tupleQueue
 
     // learn
-    if (tupleQueue.size < m) {
-      learnNum = tupleQueue.size
-    }
     val it = tupleQueue.iterator
-    while (i < learnNum) {
+    while (i < m) {
       val tuple = it.next() // return but don't remove
       val key = tuple.key
       schedulerStateData.spaceSaving.newSample(key)
@@ -123,16 +131,6 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     sketch
   }
 
-  when(COLLECT) {
-    case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
-      schedulerStateData.tupleQueue += tuple
-      if(schedulerStateData.tupleQueue.size > m) {
-        goto(LEARN)
-      }else {
-        stay()
-      }
-    }
-  }
 
   when(LEARN) {
 
@@ -181,7 +179,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
   }
 
-  def assignPeriodBarrier() = {
+  def assignPeriodBarriers() = {
     instanceActors.foreach {
       instanceActor => {
         instanceActor ! new PeriodBarrier(index, period)
@@ -197,13 +195,17 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       assignTuple(tuple, routingTable)
       x += 1
     }
-    assignPeriodBarrier()
+    assignPeriodBarriers()
   }
 
   when(ASSIGN) {
     case Event(AssignmentCompleted, schedulerStateData: SchedulerStateData) => {
       log.info("Scheduler " + index + " is gonna LEARN state")
-      goto(LEARN)
+      if (schedulerStateData.tupleQueue.size > m) {
+        goto(LEARN)
+      } else {
+        goto(COLLECT)
+      }
     }
   }
 

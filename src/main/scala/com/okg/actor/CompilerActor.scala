@@ -10,15 +10,15 @@ import com.okg.state._
 import scala.collection.mutable
 
 /**
-  * Class for Coordinator
+  * Actor for Compiler
   *
   * @param schedulerActors
   * @param instanceActors
   * @param s
   * @param k
   */
-case class CoordinatorActor(s: Int, // number of Scheduler instances
-                            instanceActors: Array[ActorRef])
+case class CompilerActor(s: Int, // number of Scheduler instances
+                         instanceActors: Array[ActorRef])
   extends Actor with FSM[CoordinatorState, CoordinatorStateData] {
 
   val k = instanceActors.size

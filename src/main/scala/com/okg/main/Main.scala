@@ -1,7 +1,7 @@
 package com.okg.main
 
 import akka.actor.{ActorRef, ActorSystem, Props}
-import com.okg.actor.{CoordinatorActor, InstanceActor, SchedulerActor, StatisticsActor}
+import com.okg.actor.{CompilerActor, InstanceActor, SchedulerActor, StatisticsActor}
 import com.okg.message.communication.StartSimulation
 
 object Main {
@@ -25,7 +25,7 @@ object Main {
 
     val my_mailbox = "akka.actor.my_mailbox"
     val coordinatorActorRef = system.actorOf(
-      Props(new CoordinatorActor(s, instanceActors)).withMailbox(my_mailbox))
+      Props(new CompilerActor(s, instanceActors)).withMailbox(my_mailbox))
 
     for (i <- 0 to s - 1) {
       schedulerActors(i) =

@@ -49,7 +49,7 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
       instancesNum += 1
       receivedTupleSum += periodTuplesNum
       if(instancesNum == instanceActors.length) {
-        log.info("Statistic: all the instances received " + receivedTupleSum)
+        log.info("Statistic: all the instances received " + receivedTupleSum + " so far")
         instancesNum = 0
       }
       val record = new Array[String](2)

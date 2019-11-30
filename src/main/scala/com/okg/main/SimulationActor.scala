@@ -21,7 +21,6 @@ class SimulationActor(coordinatorActor: ActorRef,
   val s = schedulerActors.size
   val k = instanceActors.size
   var loads = new Array[Int](k)
-  var receivedLoad = 0
 
   val windowsFileName = "C:\\Users\\lizi\\Desktop\\thesis_workspace\\OKG_workspace\\OKG_data\\" +
     "Zipf_Data\\Fixed_Distribution\\zipf_z_2-0.csv"
@@ -62,11 +61,13 @@ class SimulationActor(coordinatorActor: ActorRef,
     }
   }
 
-  var schedulerTotalTupleNums = 0
-  var instanceTotalTupleNums = 0
+  var schedulersTotalTupleNum = 0
+  var instancesTotalTupleNum = 0
 
   var startTime = 0L
   var endTime = 0L
+
+  var receivedLoad = 0
 
   override def receive: Receive = {
     case StartSimulation => {
@@ -80,24 +81,24 @@ class SimulationActor(coordinatorActor: ActorRef,
       receivedLoad += 1
       if (receivedLoad == k) {
         endTime = System.currentTimeMillis()
-        log.info("received all loads")
-        log.info("Simulation terminates...")
-        log.info("Simulation takes " + (endTime - startTime) + " ms")
-        log.info("Now output statistics: ")
+        log.info("Simulator: received all loads")
+        log.info("Simulator: simulation terminates...")
+        log.info("Simulator: simulation takes " + (endTime - startTime) + " ms")
+        log.info("Simulator: now output statistics: ")
 
-        log.info("Scheduler received tuples：")
+        log.info("Simulator: schedulers:")
         for (i <- 0 to s - 1) {
-          schedulerTotalTupleNums += tupleNums(i)
+          schedulersTotalTupleNum += tupleNums(i)
           log.info(i + "  ->  " + tupleNums(i))
         }
-        log.info("Scheduler received " + schedulerTotalTupleNums + " tuples in total")
+        log.info("Simulator: Scheduler received " + schedulersTotalTupleNum + " tuples in total:")
 
-        log.info("Instance received tuples：")
+        log.info("Simulator: instances:")
         for (i <- 0 to k - 1) {
-          instanceTotalTupleNums += loads(i)
+          instancesTotalTupleNum += loads(i)
           log.info(i + "  ->  " + loads(i))
         }
-        log.info("Instance received " + instanceTotalTupleNums + " tuples in total")
+        log.info("Simulator: instances received " + instancesTotalTupleNum + " tuples in total:")
 
         var maxLoad = loads(0)
         for (i <- 1 to k - 1) {
@@ -105,7 +106,7 @@ class SimulationActor(coordinatorActor: ActorRef,
             maxLoad = loads(i)
           }
         }
-        val averageLoad = instanceTotalTupleNums / k
+        val averageLoad = instancesTotalTupleNum / k
         val imbalance: Float = ((maxLoad.toFloat / averageLoad.toFloat) - 1) * 100
         log.info("Final imbalance is " + imbalance + "%")
       }
