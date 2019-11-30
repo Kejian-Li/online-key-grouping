@@ -34,12 +34,12 @@ case class CompilerActor(s: Int, // number of Scheduler instances
   when(WAIT_ALL) {
     case Event(sketch: Sketch, compilerStateData: CompilerStateData) => {
 
-      log.info("Coordinator received sketch from " + sender())
+      log.info("Compiler received sketch from " + sender())
 
       val newStateData = compilerStateData.copy(sketches = compilerStateData.sketches :+ sketch)
-      log.info("Coordinator received sketch " + newStateData.sketches.size + " in total")
+      log.info("Compiler received sketch " + newStateData.sketches.size + " in total")
       if (newStateData.sketches.size == s) {
-        log.info("Coordinator is gonna COMPILE state")
+        log.info("Compiler is gonna COMPILE state")
         goto(COMPILE) using (newStateData)
       } else {
         stay() using (newStateData)
@@ -53,9 +53,9 @@ case class CompilerActor(s: Int, // number of Scheduler instances
 
       if (compilerStateData.migrationCompletedNotifications == k) {
         if (nextRoutingTable.isEmpty) { // sanity check
-          log.error("Coordinator: next routing table is empty")
+          log.error("Compiler: next routing table is empty")
         } else {
-          log.info("Coordinator: new routing table size is " + nextRoutingTable.size())
+          log.info("Compiler: new routing table size is " + nextRoutingTable.size())
         }
         goto(WAIT_ALL) using (
           new CompilerStateData(nextRoutingTable, List.empty[Sketch],
@@ -72,7 +72,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
 
       if (schedulerActorsSet.size == s) {
         for (i <- 0 to k - 1) {
-          log.info("Coordinator: register myself at the instance " + i + " of the Operator")
+          log.info("Compiler: register myself at the instance " + i + " of the Operator")
           instanceActors(i) ! CoordinatorRegistration
         }
       }
@@ -84,7 +84,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     case WAIT_ALL -> COMPILE => {
       nextRoutingTable = generateRoutingTable(nextStateData)
 
-      log.info("Coordinator: next routing table:")
+      log.info("Compiler: next routing table:")
       nextRoutingTable.map.foreach {
         entry => {
           log.info(entry._1 + "  " + entry._2)
@@ -136,10 +136,10 @@ case class CompilerActor(s: Int, // number of Scheduler instances
         heavyHittersMapping.put(key, leastIndex)
       }
     )
-    log.info("Coordinator: build global mapping function successfully")
-    log.info("Coordinator: next routing table size is: " + heavyHittersMapping.size)
+    log.info("Compiler: build global mapping function successfully")
+    log.info("Compiler: next routing table size is: " + heavyHittersMapping.size)
 
-    log.info("Coordinator: historical buckets will be: ")
+    log.info("Compiler: historical buckets will be: ")
     for (i <- 0 to historicalBuckets.length - 1) {
       log.info(i + "  " + historicalBuckets(i))
     }
@@ -151,11 +151,11 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     val cumulativeHeavyHittersMap = mutable.TreeMap.empty[Int, Int]
     val cumulativeBuckets = new Array[Int](k)
 
-    log.info("Coordinator: " + "heavy hitters of each original sketch: ")
+    log.info("Compiler: " + "heavy hitters of each original sketch: ")
     var i = 0
     compilerStateData.sketches.foreach {
       sketch => {
-        log.info("Coordinator: sketch " + i + "'s heavy hitters of original sketch: ")
+        log.info("Compiler: sketch " + i + "'s heavy hitters of original sketch: ")
         sketch.heavyHitters.foreach {
           entry => {
             log.info(entry._1 + " " + entry._2)
@@ -166,7 +166,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     }
 
     for (j <- 0 to compilerStateData.sketches.size - 1) {
-      log.info("Coordinator: sketch " + j + "'s buckets: ")
+      log.info("Compiler: sketch " + j + "'s buckets: ")
       for (i <- 0 to k - 1) {
         log.info(i + "  " + compilerStateData.sketches(j).buckets(i))
       }
@@ -188,14 +188,14 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       }
     )
 
-    log.info("Coordinator: " + "cumulative heavy hitters in the original order: ")
+    log.info("Compiler: " + "cumulative heavy hitters in the original order: ")
     cumulativeHeavyHittersMap.foreach {
       entry => {
         log.info(entry._1 + "  " + entry._2)
       }
     }
 
-    log.info("Coordinator: cumulative buckets:")
+    log.info("Compiler: cumulative buckets:")
     for (i <- 0 to k - 1) {
       log.info(i + " " + cumulativeBuckets(i))
     }
@@ -209,7 +209,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     val cumulativeSketch = cumulateSketches(compilerStateData)
     val descendingHeavyHittersMap = cumulativeSketch.heavyHitters.toSeq.sortWith(_._2 > _._2)
 
-    log.info("Coordinator: " + "cumulative heavy hitter in the descending order: ")
+    log.info("Compiler: " + "cumulative heavy hitter in the descending order: ")
     descendingHeavyHittersMap.foreach {
       entry => {
         log.info(entry._1 + "  " + entry._2)
@@ -248,7 +248,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       }
     }
 
-    log.info("Coordinator: make migration table successfully, its size is: " + migrationTable.size)
+    log.info("Compiler: make migration table successfully, its size is: " + migrationTable.size)
     migrationTable
   }
 }

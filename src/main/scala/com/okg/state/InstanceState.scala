@@ -4,4 +4,4 @@ sealed trait InstanceState extends State
 
 case object RUN extends InstanceState
 
-case object MIGRATION extends InstanceState
+case object MIGRATE extends InstanceState
