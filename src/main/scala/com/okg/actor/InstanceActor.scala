@@ -54,6 +54,7 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
     case Event(MigrationCompleted, data: InstanceStateData) => {
       log.info("Instance " + index + " migrates successfully")
 
+      coordinatorActorRef ! MigrationCompleted
       goto(RUN) using (data.copy(period = data.period + 1))
     }
   }
@@ -90,12 +91,13 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
 
   onTransition {
     case RUN -> MIGRATE => {
+      log.info("Instance " + index + " enters MIGRATE")
       // migration procedure. it is omitted. we simply suppose that migration is completed
       self ! MigrationCompleted
     }
+
     case MIGRATE -> RUN => {
-      log.info("Instance " + index + " is gonna enter period " + nextStateData.period)
-      coordinatorActorRef ! MigrationCompleted
+      log.info("Instance " + index + " enters " + nextStateData.period + " RUNs")
     }
   }
 }

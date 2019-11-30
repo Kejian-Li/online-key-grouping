@@ -89,7 +89,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
       schedulerStateData.tupleQueue += tuple
       if (schedulerStateData.tupleQueue.size > m) {
-        log.info("Scheduler " + index + ": " + "collects successfully and is gonna LEARN state")
+        log.info("Scheduler " + index + ": " + "collects successfully")
         goto(LEARN)
       } else {
         stay()
@@ -139,7 +139,6 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       coordinatorActor ! learnCompleted.sketch
 
       log.info("Scheduler " + index + " send sketch successfully")
-      log.info("Scheduler " + index + " is gonna WAIT state")
 
       goto(WAIT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta),
         sketch = new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k))))
@@ -200,7 +199,6 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
   when(ASSIGN) {
     case Event(AssignmentCompleted, schedulerStateData: SchedulerStateData) => {
-      log.info("Scheduler " + index + " is gonna LEARN state")
       if (schedulerStateData.tupleQueue.size > m) {
         goto(LEARN)
       } else {
@@ -213,7 +211,9 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     case _ -> COLLECT => {
       log.info("Scheduler " + index + " enters COLLECT state")
     }
+
     case _ -> LEARN => {
+      log.info("Scheduler " + index + " enters LEARN state")
       i = 0
       period += 1
       log.info("Scheduler " + index + " enters " + period + " period")
@@ -224,8 +224,12 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
 
     case _ -> ASSIGN => {
+      log.info("Scheduler " + index + " enters ASSIGN state")
       assign(nextStateData.tupleQueue, nextStateData.routingTable)
       self ! AssignmentCompleted // assignment in each period is completed
+    }
+    case _ -> WAIT => {
+      log.info("Scheduler " + index + " enters WAIT state")
     }
   }
 

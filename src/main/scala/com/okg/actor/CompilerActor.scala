@@ -82,8 +82,10 @@ case class CompilerActor(s: Int, // number of Scheduler instances
 
   onTransition {
     case WAIT_ALL -> COMPILE => {
+      log.info("Compiler enters COMPILE")
       nextRoutingTable = generateRoutingTable(nextStateData)
 
+      log.info("Compiler: next routing table size is: " + nextRoutingTable.size)
       log.info("Compiler: next routing table:")
       nextRoutingTable.map.foreach {
         entry => {
@@ -92,12 +94,20 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       }
 
       val migrationTable = makeMigrationTable(nextRoutingTable)
+      log.info("Compiler: make migration table successfully, its size is: " + migrationTable.size)
+      log.info("Compiler: next migration table:")
+      migrationTable.map.foreach {
+        entry => {
+          log.info(entry._1 + "  " + entry._2)
+        }
+      }
       instanceActors.foreach(instanceActor => {
         instanceActor ! new StartMigration(instanceActors, migrationTable)
       })
     }
 
     case COMPILE -> WAIT_ALL => {
+      log.info("Compiler enters WAIT_ALL")
       schedulerActorsSet.foreach(schedulerActor => {
         schedulerActor ! new StartAssignment(nextRoutingTable)
       })
@@ -136,8 +146,6 @@ case class CompilerActor(s: Int, // number of Scheduler instances
         heavyHittersMapping.put(key, leastIndex)
       }
     )
-    log.info("Compiler: build global mapping function successfully")
-    log.info("Compiler: next routing table size is: " + heavyHittersMapping.size)
 
     log.info("Compiler: historical buckets will be: ")
     for (i <- 0 to historicalBuckets.length - 1) {
@@ -201,7 +209,6 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     }
 
     new Sketch(cumulativeHeavyHittersMap, cumulativeBuckets)
-
   }
 
   // generate a new routing table
@@ -209,7 +216,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     val cumulativeSketch = cumulateSketches(compilerStateData)
     val descendingHeavyHittersMap = cumulativeSketch.heavyHitters.toSeq.sortWith(_._2 > _._2)
 
-    log.info("Compiler: " + "cumulative heavy hitter in the descending order: ")
+    log.info("Compiler: " + "cumulative heavy hitters in the descending order: ")
     descendingHeavyHittersMap.foreach {
       entry => {
         log.info(entry._1 + "  " + entry._2)
@@ -248,7 +255,6 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       }
     }
 
-    log.info("Compiler: make migration table successfully, its size is: " + migrationTable.size)
     migrationTable
   }
 }
