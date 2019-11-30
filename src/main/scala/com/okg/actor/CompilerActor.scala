@@ -19,24 +19,24 @@ import scala.collection.mutable
   */
 case class CompilerActor(s: Int, // number of Scheduler instances
                          instanceActors: Array[ActorRef])
-  extends Actor with FSM[CoordinatorState, CoordinatorStateData] {
+  extends Actor with FSM[CompilerState, CompilerStateData] {
 
   val k = instanceActors.size
   val schedulerActorsSet = mutable.Set.empty[ActorRef]
   var nextRoutingTable = new RoutingTable(mutable.Map.empty[Int, Int]) // empty routing table
 
-  startWith(WAIT_ALL, new CoordinatorStateData(
+  startWith(WAIT_ALL, new CompilerStateData(
     new RoutingTable(mutable.Map.empty[Int, Int]),
     List.empty[Sketch],
     0,
     new Array[Int](k)))
 
   when(WAIT_ALL) {
-    case Event(sketch: Sketch, coordinatorStateData: CoordinatorStateData) => {
+    case Event(sketch: Sketch, compilerStateData: CompilerStateData) => {
 
       log.info("Coordinator received sketch from " + sender())
 
-      val newStateData = coordinatorStateData.copy(sketches = coordinatorStateData.sketches :+ sketch)
+      val newStateData = compilerStateData.copy(sketches = compilerStateData.sketches :+ sketch)
       log.info("Coordinator received sketch " + newStateData.sketches.size + " in total")
       if (newStateData.sketches.size == s) {
         log.info("Coordinator is gonna COMPILE state")
@@ -48,17 +48,17 @@ case class CompilerActor(s: Int, // number of Scheduler instances
   }
 
   when(COMPILE) {
-    case Event(MigrationCompleted, coordinatorStateData: CoordinatorStateData) => {
-      coordinatorStateData.migrationCompletedNotifications += 1
+    case Event(MigrationCompleted, compilerStateData: CompilerStateData) => {
+      compilerStateData.migrationCompletedNotifications += 1
 
-      if (coordinatorStateData.migrationCompletedNotifications == k) {
+      if (compilerStateData.migrationCompletedNotifications == k) {
         if (nextRoutingTable.isEmpty) { // sanity check
           log.error("Coordinator: next routing table is empty")
         } else {
           log.info("Coordinator: new routing table size is " + nextRoutingTable.size())
         }
         goto(WAIT_ALL) using (
-          new CoordinatorStateData(nextRoutingTable, List.empty[Sketch],
+          new CompilerStateData(nextRoutingTable, List.empty[Sketch],
             0, historicalBuckets))
       } else {
         stay()
@@ -67,7 +67,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
   }
 
   whenUnhandled {
-    case Event(StartSimulation, coordinatorStateData: CoordinatorStateData) => {
+    case Event(StartSimulation, compilerStateData: CompilerStateData) => {
       schedulerActorsSet.add(sender())
 
       if (schedulerActorsSet.size == s) {
@@ -121,8 +121,8 @@ case class CompilerActor(s: Int, // number of Scheduler instances
   // update historicalBuckets of CoordinatorStateData
   def buildGlobalMappingFunction(heavyHitters: Seq[(Int, Int)], //  (key, frequency)
                                  buckets: Array[Int],
-                                 coordinatorStateData: CoordinatorStateData) = {
-    historicalBuckets = coordinatorStateData.historicalBuckets.clone()
+                                 compilerStateData: CompilerStateData) = {
+    historicalBuckets = compilerStateData.historicalBuckets.clone()
     for (i <- 0 to k - 1) {
       historicalBuckets.update(i, historicalBuckets(i) + buckets(i))
     }
@@ -147,13 +147,13 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     new RoutingTable(heavyHittersMapping)
   }
 
-  def cumulateSketches(coordinatorStateData: CoordinatorStateData) = {
+  def cumulateSketches(compilerStateData: CompilerStateData) = {
     val cumulativeHeavyHittersMap = mutable.TreeMap.empty[Int, Int]
     val cumulativeBuckets = new Array[Int](k)
 
     log.info("Coordinator: " + "heavy hitters of each original sketch: ")
     var i = 0
-    coordinatorStateData.sketches.foreach {
+    compilerStateData.sketches.foreach {
       sketch => {
         log.info("Coordinator: sketch " + i + "'s heavy hitters of original sketch: ")
         sketch.heavyHitters.foreach {
@@ -165,14 +165,14 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       }
     }
 
-    for (j <- 0 to coordinatorStateData.sketches.size - 1) {
+    for (j <- 0 to compilerStateData.sketches.size - 1) {
       log.info("Coordinator: sketch " + j + "'s buckets: ")
       for (i <- 0 to k - 1) {
-        log.info(i + "  " + coordinatorStateData.sketches(j).buckets(i))
+        log.info(i + "  " + compilerStateData.sketches(j).buckets(i))
       }
     }
 
-    coordinatorStateData.sketches.foreach(
+    compilerStateData.sketches.foreach(
       sketch => {
 
         sketch.heavyHitters.foreach(
@@ -205,8 +205,8 @@ case class CompilerActor(s: Int, // number of Scheduler instances
   }
 
   // generate a new routing table
-  def generateRoutingTable(coordinatorStateData: CoordinatorStateData): RoutingTable = {
-    val cumulativeSketch = cumulateSketches(coordinatorStateData)
+  def generateRoutingTable(compilerStateData: CompilerStateData): RoutingTable = {
+    val cumulativeSketch = cumulateSketches(compilerStateData)
     val descendingHeavyHittersMap = cumulativeSketch.heavyHitters.toSeq.sortWith(_._2 > _._2)
 
     log.info("Coordinator: " + "cumulative heavy hitter in the descending order: ")
@@ -216,7 +216,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       }
     }
 
-    buildGlobalMappingFunction(descendingHeavyHittersMap, cumulativeSketch.buckets, coordinatorStateData)
+    buildGlobalMappingFunction(descendingHeavyHittersMap, cumulativeSketch.buckets, compilerStateData)
   }
 
   // compare currentRoutingTable with nextRoutingTable to make migration table

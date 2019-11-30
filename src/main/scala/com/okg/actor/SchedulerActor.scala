@@ -210,6 +210,9 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   }
 
   onTransition {
+    case _ -> COLLECT => {
+      log.info("Scheduler " + index + " enters COLLECT state")
+    }
     case _ -> LEARN => {
       i = 0
       period += 1
