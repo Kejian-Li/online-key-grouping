@@ -14,7 +14,7 @@ import scala.collection.mutable
   */
 class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceStateData] {
 
-  var coordinatorActorRef = Actor.noSender
+  var compilerActorRef = Actor.noSender
   val schedulerActorsSet = mutable.Set.empty[ActorRef]
   var instanceActors = Array.empty[ActorRef]
   var receivedPeriodTuplesNum = 0
@@ -54,7 +54,7 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
     case Event(MigrationCompleted, data: InstanceStateData) => {
       log.info("Instance " + index + " migrates successfully")
 
-      coordinatorActorRef ! MigrationCompleted
+      compilerActorRef ! MigrationCompleted
       goto(RUN) using (data.copy(period = data.period + 1))
     }
   }
@@ -68,7 +68,7 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
       stay()
     }
     case Event(CoordinatorRegistration, data: InstanceStateData) => {
-      coordinatorActorRef = sender()
+      compilerActorRef = sender()
       stay()
     }
 

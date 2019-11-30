@@ -48,7 +48,7 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
         + periodTuplesNum + ", " + totalTuplesNum + " in total")
       instancesNum += 1
       receivedTupleSum += periodTuplesNum
-      if(instancesNum == instanceActors.length) {
+      if (instancesNum == instanceActors.length) {
         log.info("Statistic: all the instances received " + receivedTupleSum + " so far")
         instancesNum = 0
       }
@@ -57,6 +57,9 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
       record(1) = totalTuplesNum.toString
       periodWriters(index).writeRecord(record)
       periodWriters(index).flush()
+      if (period == 333) {
+
+      }
     }
 
   }

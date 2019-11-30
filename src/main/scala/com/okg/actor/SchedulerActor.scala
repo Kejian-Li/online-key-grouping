@@ -4,7 +4,7 @@ import java.util
 
 import akka.actor.{Actor, ActorRef, FSM}
 import com.okg.message._
-import com.okg.message.communication.{AssignmentCompleted, LearnCompleted, StartSimulation, TerminateSimulation}
+import com.okg.message.communication._
 import com.okg.state._
 import com.okg.tuple.{Tuple, TupleQueue}
 import com.okg.util.{SpaceSaving, TwoUniversalHash}
@@ -95,16 +95,25 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
         stay()
       }
     }
+    case Event(TerminationNotification, schedulerStateData: SchedulerStateData) => {
+      goto(LEARN)
+    }
   }
 
   var i = 0
 
+  var learnNum = m
+
   def learn(schedulerStateData: SchedulerStateData) = {
     val tupleQueue = schedulerStateData.tupleQueue
 
+    if(tupleQueue.size < m) {
+      learnNum = tupleQueue.size
+    }
+
     // learn
     val it = tupleQueue.iterator
-    while (i < m) {
+    while (i < learnNum) {
       val tuple = it.next() // return but don't remove
       val key = tuple.key
       schedulerStateData.spaceSaving.newSample(key)
