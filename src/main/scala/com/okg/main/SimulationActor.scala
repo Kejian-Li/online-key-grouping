@@ -3,7 +3,7 @@ package com.okg.main
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import com.csvreader.CsvReader
 import com.okg.message.Load
-import com.okg.message.communication.{StartSimulation, TerminateSimulation}
+import com.okg.message.communication.{CompletenessAsk, CompletenessReply, StartSimulation, TerminateSimulation}
 import com.okg.tuple.Tuple
 
 /**
@@ -28,7 +28,7 @@ class SimulationActor(coordinatorActor: ActorRef,
   val tupleNums = new Array[Int](s)
 
   def startSimulation(): Unit = {
-    val inFileName = ubuntuFileName
+    val inFileName = windowsFileName
 
     val csvItemReader = new CsvItemReader(new CsvReader(inFileName))
     var items = csvItemReader.nextItem()
@@ -68,6 +68,8 @@ class SimulationActor(coordinatorActor: ActorRef,
   var endTime = 0L
 
   var receivedLoad = 0
+
+  var main: ActorRef = null
 
   override def receive: Receive = {
     case StartSimulation => {
@@ -109,7 +111,12 @@ class SimulationActor(coordinatorActor: ActorRef,
         val averageLoad = instancesTotalTupleNum / k
         val imbalance: Float = ((maxLoad.toFloat / averageLoad.toFloat) - 1) * 100
         log.info("Final imbalance is " + imbalance + "%")
+        main ! CompletenessReply
       }
+    }
+
+    case CompletenessAsk => {
+      main = sender()
     }
   }
 
