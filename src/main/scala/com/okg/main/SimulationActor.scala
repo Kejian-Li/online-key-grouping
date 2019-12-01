@@ -110,6 +110,7 @@ class SimulationActor(coordinatorActor: ActorRef,
         }
         val averageLoad = instancesTotalTupleNum / k
         val imbalance: Float = ((maxLoad.toFloat / averageLoad.toFloat) - 1) * 100
+        log.info(" ")
         log.info("Final imbalance is " + imbalance + "%")
         main ! CompletenessReply
       }
