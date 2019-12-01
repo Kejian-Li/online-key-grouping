@@ -2,17 +2,20 @@ package com.okg.main
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import com.okg.actor.{CompilerActor, InstanceActor, SchedulerActor, StatisticsActor}
-import com.okg.message.communication.StartSimulation
+import com.okg.message.communication.{CompleteAsk, StartSimulation}
+import akka.pattern.ask
+import scala.concurrent.duration._
 
 object Main {
 
   def main(args: Array[String]): Unit = {
 
     val m = 10000
-    val s = 4
-    val k = 5
+    // s should by divided exactly by the number of total tuples, for example 10^7 in our test
+    val s = 1
+    val k = 10
     val theta = 0.01
-    val epsilon = theta / 2   // satisfy: theta > epsilon
+    val epsilon = theta / 2 // satisfy: theta > epsilon
 
     val system = ActorSystem()
 
@@ -41,6 +44,14 @@ object Main {
         .withMailbox(my_mailbox))
 
     simulationActor ! StartSimulation
+
+    implicit val timeout = akka.util.Timeout(2 minutes)
+    val future = simulationActor ? CompleteAsk
+    if (!future.value.isEmpty) {
+      
+    } else {
+      system.log.info("Ask reply is null or timeout")
+    }
   }
 
 }
