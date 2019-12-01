@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorRef, FSM}
 import akka.japi.Option.Some
 import com.okg.message._
 import com.okg.message.communication.{MigrationCompleted, StartSimulation}
-import com.okg.message.registration.CoordinatorRegistration
+import com.okg.message.registration.CompilerRegistrationAtInstances
 import com.okg.state._
 
 import scala.collection.mutable
@@ -73,7 +73,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       if (schedulerActorsSet.size == s) {
         for (i <- 0 to k - 1) {
           log.info("Compiler: register myself at the instance " + i + " of the Operator")
-          instanceActors(i) ! CoordinatorRegistration
+          instanceActors(i) ! CompilerRegistrationAtInstances
         }
       }
       stay()

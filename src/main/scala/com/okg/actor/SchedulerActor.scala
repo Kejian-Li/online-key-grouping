@@ -170,7 +170,8 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
     case Event(TerminateSimulation, schedulerStateData: SchedulerStateData) => {
       log.info("Scheduler " + index + " received termination notification")
-      log.info("Scheduler " + index + " has " + schedulerStateData.tupleQueue.size + " unassigned tuples..................")
+      log.info("Scheduler " + index + " has " + schedulerStateData.tupleQueue.size + " unassigned tuples.........................................")
+      log.info("Scheduler " + index + " is at " + stateName)
       for (i <- 0 to k - 1) {
         instanceActors(i) forward (TerminateSimulation) // forward termination notification to instances
       }

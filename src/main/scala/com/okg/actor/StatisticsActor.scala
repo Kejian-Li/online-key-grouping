@@ -6,7 +6,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef}
 import com.csvreader.CsvWriter
 import com.okg.message.Statistics
 import com.okg.message.communication.StartSimulation
-import com.okg.message.registration.StatisticsActorRegistration
+import com.okg.message.registration.StatisticsRegistrationAtInstances
 
 class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorLogging {
 
@@ -38,7 +38,7 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
     case StartSimulation => {
       instanceActors.foreach {
         instanceActor => {
-          instanceActor ! StatisticsActorRegistration
+          instanceActor ! StatisticsRegistrationAtInstances
         }
       }
     }
