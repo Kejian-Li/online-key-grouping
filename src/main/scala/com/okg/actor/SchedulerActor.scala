@@ -153,6 +153,8 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
   }
 
+  var terminateSimulationFromSimulation = false
+  var simulatorActor: ActorRef = null
   whenUnhandled {
     case Event(StartSimulation, schedulerStateData: SchedulerStateData) => {
       coordinatorActor ! StartSimulation
@@ -171,11 +173,19 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     case Event(TerminateSimulation, schedulerStateData: SchedulerStateData) => {
       log.info("Scheduler " + index + " received termination notification")
       log.info("Scheduler " + index + " has " + schedulerStateData.tupleQueue.size + " unassigned tuples.........................................")
-      log.info("Scheduler " + index + " is at " + stateName)
-      for (i <- 0 to k - 1) {
-        instanceActors(i) forward (TerminateSimulation) // forward termination notification to instances
-      }
+      terminateSimulationFromSimulation = true
+      simulatorActor = sender()
+      stay()
+    }
 
+    case Event(TupleQueueClear, schedulerStateData: SchedulerStateData) => {
+      if (terminateSimulationFromSimulation) {
+        for (i <- 0 to k - 1) {
+          // send termination notification to instances and assign receiver of respond as simulatorActor
+          instanceActors(i).tell(TerminateSimulation, simulatorActor)
+        }
+        log.info("Scheduler " + index + " sends termination notification")
+      }
       stay()
     }
 
@@ -207,7 +217,11 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       if (schedulerStateData.tupleQueue.size >= m) {
         goto(LEARN)
       } else {
-        log.info("Scheduler " + index + " collects " + schedulerStateData.tupleQueue.size + " tuples, it is not enough")
+        val collectedTuplesNum = schedulerStateData.tupleQueue.size
+        log.info("Scheduler " + index + " collects " + collectedTuplesNum + " tuples, it is not enough")
+        if (collectedTuplesNum == 0) {
+          self ! TupleQueueClear
+        }
         goto(COLLECT)
       }
     }
