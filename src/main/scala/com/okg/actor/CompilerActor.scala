@@ -96,9 +96,16 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       val migrationTable = makeMigrationTable(nextRoutingTable)
       log.info("Compiler: make migration table successfully, its size is: " + migrationTable.size)
       log.info("Compiler: next migration table:")
+
       migrationTable.map.foreach {
         entry => {
-          log.info(entry._1 + "  " + entry._2.before.get + "  " + entry._2.after.get)
+          if (entry._2.before.isEmpty) {
+            log.info(entry._1 + "  null  " + entry._2.after.get)
+          }else if(entry._2.after.isEmpty) {
+            log.info(entry._1 + "  " + entry._2.before.get + "  null")
+          }else {
+            log.info(entry._1 + "  " + entry._2.before.get + "  " + entry._2.after.get)
+          }
         }
       }
       instanceActors.foreach(instanceActor => {
@@ -127,6 +134,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
   }
 
   var historicalBuckets: Array[Int] = null
+
   // build global mapping and return routing table
   // update historicalBuckets of CoordinatorStateData
   def buildGlobalMappingFunction(heavyHitters: Seq[(Int, Int)], //  (key, frequency)
