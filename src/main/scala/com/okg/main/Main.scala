@@ -12,7 +12,7 @@ object Main {
 
     val m = 10000
     // s should by divided exactly by the number of total tuples, for example 10^7 in our test
-    val s = 1
+    val s = 4
     val k = 10
     val theta = 0.01
     val epsilon = theta / 2 // satisfy: theta > epsilon
