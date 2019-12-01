@@ -214,11 +214,11 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
   onTransition {
     case _ -> COLLECT => {
-      log.info("Scheduler " + index + " enters COLLECT state")
+      log.info("Scheduler " + index + " enters COLLECT")
     }
 
     case _ -> LEARN => {
-      log.info("Scheduler " + index + " enters LEARN state")
+      log.info("Scheduler " + index + " enters LEARN")
       log.info("Scheduler " + index + " enters period " + period)
       log.info("Scheduler " + index + " assigned so far " + assignedTotalTuplesNum + " tuples in total")
 
@@ -228,13 +228,13 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
 
     case _ -> ASSIGN => {
-      log.info("Scheduler " + index + " enters ASSIGN state")
+      log.info("Scheduler " + index + " enters ASSIGN")
       assign(nextStateData.tupleQueue, nextStateData.routingTable)
       self ! AssignmentCompleted // assignment in each period is completed
     }
 
     case _ -> WAIT => {
-      log.info("Scheduler " + index + " enters WAIT state")
+      log.info("Scheduler " + index + " enters WAIT")
     }
   }
 

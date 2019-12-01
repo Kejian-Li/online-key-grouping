@@ -39,7 +39,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       val newStateData = compilerStateData.copy(sketches = compilerStateData.sketches :+ sketch)
       log.info("Compiler received sketch " + newStateData.sketches.size + " in total")
       if (newStateData.sketches.size == s) {
-        log.info("Compiler is gonna COMPILE state")
+        log.info("Compiler is gonna COMPILE")
         goto(COMPILE) using (newStateData)
       } else {
         stay() using (newStateData)
@@ -98,7 +98,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       log.info("Compiler: next migration table:")
       migrationTable.map.foreach {
         entry => {
-          log.info(entry._1 + "  " + entry._2.before + "  " + entry._2.after)
+          log.info(entry._1 + "  " + entry._2.before.get + "  " + entry._2.after.get)
         }
       }
       instanceActors.foreach(instanceActor => {
@@ -166,7 +166,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
         log.info("Compiler: sketch " + i + "'s heavy hitters of original sketch: ")
         sketch.heavyHitters.foreach {
           entry => {
-            log.info(entry._1 + " " + entry._2)
+            log.info(entry._1 + "  " + entry._2)
           }
         }
         i += 1
@@ -205,7 +205,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
 
     log.info("Compiler: cumulative buckets:")
     for (i <- 0 to k - 1) {
-      log.info(i + " " + cumulativeBuckets(i))
+      log.info(i + "  " + cumulativeBuckets(i))
     }
 
     new Sketch(cumulativeHeavyHittersMap, cumulativeBuckets)
