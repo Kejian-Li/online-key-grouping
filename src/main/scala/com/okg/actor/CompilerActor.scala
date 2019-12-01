@@ -98,7 +98,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       log.info("Compiler: next migration table:")
       migrationTable.map.foreach {
         entry => {
-          log.info(entry._1 + "  " + entry._2)
+          log.info(entry._1 + "  " + entry._2.before + "  " + entry._2.after)
         }
       }
       instanceActors.foreach(instanceActor => {

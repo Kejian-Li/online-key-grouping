@@ -88,7 +88,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   when(COLLECT) {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
       schedulerStateData.tupleQueue += tuple
-      if (schedulerStateData.tupleQueue.size > m) {
+      if (schedulerStateData.tupleQueue.size >= m) {
         log.info("Scheduler " + index + ": " + "collects successfully")
         goto(LEARN)
       } else {
@@ -96,14 +96,6 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       }
     }
 
-    case Event(TerminateSimulation, schedulerStateData: SchedulerStateData) => {
-      log.info("Scheduler " + index + " received termination notification")
-      log.info("Scheduler " + index + " has " + schedulerStateData.tupleQueue.size + " unassigned tuples..................")
-      for (i <- 0 to k - 1) {
-        instanceActors(i) forward (TerminateSimulation) // forward termination notification to instances
-      }
-      stay()
-    }
   }
 
   var i = 0
@@ -139,7 +131,6 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
     sketch
   }
-
 
   when(LEARN) {
 
@@ -177,6 +168,16 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       stay()
     }
 
+    case Event(TerminateSimulation, schedulerStateData: SchedulerStateData) => {
+      log.info("Scheduler " + index + " received termination notification")
+      log.info("Scheduler " + index + " has " + schedulerStateData.tupleQueue.size + " unassigned tuples..................")
+      for (i <- 0 to k - 1) {
+        instanceActors(i) forward (TerminateSimulation) // forward termination notification to instances
+      }
+
+      stay()
+    }
+
   }
 
   def assignPeriodBarriers() = {
@@ -202,10 +203,10 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     case Event(AssignmentCompleted, schedulerStateData: SchedulerStateData) => {
       period += 1
 
-      if (schedulerStateData.tupleQueue.size > m) {
+      if (schedulerStateData.tupleQueue.size >= m) {
         goto(LEARN)
       } else {
-        log.info("Scheduler " + index + " collects " + schedulerStateData.tupleQueue.size + " tuples")
+        log.info("Scheduler " + index + " collects " + schedulerStateData.tupleQueue.size + " tuples, it is not enough")
         goto(COLLECT)
       }
     }
@@ -218,7 +219,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
     case _ -> LEARN => {
       log.info("Scheduler " + index + " enters LEARN state")
-      log.info("Scheduler " + index + " enters " + " period " + period)
+      log.info("Scheduler " + index + " enters period " + period)
       log.info("Scheduler " + index + " assigned so far " + assignedTotalTuplesNum + " tuples in total")
 
       i = 0

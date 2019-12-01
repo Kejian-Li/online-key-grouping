@@ -32,7 +32,6 @@ class SimulationActor(coordinatorActor: ActorRef,
 
     val csvItemReader = new CsvItemReader(new CsvReader(inFileName))
     var items = csvItemReader.nextItem()
-    var sourceIndex = 0
 
     // Simulation starts...
     for (i <- 0 to s - 1) {
@@ -41,6 +40,7 @@ class SimulationActor(coordinatorActor: ActorRef,
 
     statisticsActor ! StartSimulation
 
+    var sourceIndex = 0
     while (items != null) {
       for (i <- 0 to items.size - 1) {
         schedulerActors(sourceIndex) ! new Tuple[Int](items(i).toInt)
@@ -55,7 +55,7 @@ class SimulationActor(coordinatorActor: ActorRef,
     }
 
     // Simulation terminates...
-    log.info("Send simulation termination notification...")
+    log.info("Send simulation termination notification<><><><><><><><><><>")
     for (i <- 0 to s - 1) {
       schedulerActors(i) ! TerminateSimulation
     }
