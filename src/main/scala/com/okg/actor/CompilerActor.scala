@@ -9,7 +9,6 @@ import com.okg.message.statistics.CompilerStatistics
 import com.okg.state._
 
 import scala.collection.mutable
-import scala.concurrent.duration.Duration
 
 /**
   * Actor for Compiler
@@ -125,7 +124,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       })
       // send statistics
       statisticsActor ! new CompilerStatistics(period,
-        Duration.fromNanos(generationTime),
+        generationTime,
         nextRoutingTable.size(),
         migrationTable.size())
     }
@@ -172,10 +171,10 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       }
     )
 
-    log.info("Compiler: historical buckets will be: ")
-    for (i <- 0 to historicalBuckets.length - 1) {
-      log.info(i + "  " + historicalBuckets(i))
-    }
+//    log.info("Compiler: historical buckets will be: ")
+//    for (i <- 0 to historicalBuckets.length - 1) {
+//      log.info(i + "  " + historicalBuckets(i))
+//    }
 
     new RoutingTable(heavyHittersMapping)
   }
@@ -184,26 +183,26 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     val cumulativeHeavyHittersMap = mutable.TreeMap.empty[Int, Int]
     val cumulativeBuckets = new Array[Int](k)
 
-    log.info("Compiler: " + "heavy hitters of each original sketch: ")
-    var i = 0
-    compilerStateData.sketches.foreach {
-      sketch => {
-        log.info("Compiler: sketch " + i + "'s heavy hitters of original sketch: ")
-        sketch.heavyHitters.foreach {
-          entry => {
-            log.info(entry._1 + "  " + entry._2)
-          }
-        }
-        i += 1
-      }
-    }
+//    log.info("Compiler: " + "heavy hitters of each original sketch: ")
+//    var i = 0
+//    compilerStateData.sketches.foreach {
+//      sketch => {
+//        log.info("Compiler: sketch " + i + "'s heavy hitters of original sketch: ")
+//        sketch.heavyHitters.foreach {
+//          entry => {
+//            log.info(entry._1 + "  " + entry._2)
+//          }
+//        }
+//        i += 1
+//      }
+//    }
 
-    for (j <- 0 to compilerStateData.sketches.size - 1) {
-      log.info("Compiler: sketch " + j + "'s buckets: ")
-      for (i <- 0 to k - 1) {
-        log.info(i + "  " + compilerStateData.sketches(j).buckets(i))
-      }
-    }
+//    for (j <- 0 to compilerStateData.sketches.size - 1) {
+//      log.info("Compiler: sketch " + j + "'s buckets: ")
+//      for (i <- 0 to k - 1) {
+//        log.info(i + "  " + compilerStateData.sketches(j).buckets(i))
+//      }
+//    }
 
     compilerStateData.sketches.foreach(
       sketch => {
@@ -221,17 +220,17 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       }
     )
 
-    log.info("Compiler: " + "cumulative heavy hitters in the original order: ")
-    cumulativeHeavyHittersMap.foreach {
-      entry => {
-        log.info(entry._1 + "  " + entry._2)
-      }
-    }
-
-    log.info("Compiler: cumulative buckets:")
-    for (i <- 0 to k - 1) {
-      log.info(i + "  " + cumulativeBuckets(i))
-    }
+//    log.info("Compiler: " + "cumulative heavy hitters in the original order: ")
+//    cumulativeHeavyHittersMap.foreach {
+//      entry => {
+//        log.info(entry._1 + "  " + entry._2)
+//      }
+//    }
+//
+//    log.info("Compiler: cumulative buckets:")
+//    for (i <- 0 to k - 1) {
+//      log.info(i + "  " + cumulativeBuckets(i))
+//    }
 
     new Sketch(cumulativeHeavyHittersMap, cumulativeBuckets)
   }
@@ -241,12 +240,12 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     val cumulativeSketch = cumulateSketches(compilerStateData)
     val descendingHeavyHittersMap = cumulativeSketch.heavyHitters.toSeq.sortWith(_._2 > _._2)
 
-    log.info("Compiler: " + "cumulative heavy hitters in the descending order: ")
-    descendingHeavyHittersMap.foreach {
-      entry => {
-        log.info(entry._1 + "  " + entry._2)
-      }
-    }
+//    log.info("Compiler: " + "cumulative heavy hitters in the descending order: ")
+//    descendingHeavyHittersMap.foreach {
+//      entry => {
+//        log.info(entry._1 + "  " + entry._2)
+//      }
+//    }
 
     buildGlobalMappingFunction(descendingHeavyHittersMap, cumulativeSketch.buckets, compilerStateData)
   }

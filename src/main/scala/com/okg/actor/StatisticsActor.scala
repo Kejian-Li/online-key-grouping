@@ -8,8 +8,6 @@ import com.okg.message.communication.StartSimulation
 import com.okg.message.registration.{StatisticsRegistrationAtCompiler, StatisticsRegistrationAtInstances}
 import com.okg.message.statistics.{CompilerStatistics, InstanceStatistics}
 
-import scala.concurrent.duration.Duration
-
 class StatisticsActor(instanceActors: Array[ActorRef],
                       compilerActor: ActorRef) extends Actor with ActorLogging {
 
@@ -72,7 +70,7 @@ class StatisticsActor(instanceActors: Array[ActorRef],
     }
 
     case CompilerStatistics(period: Int,
-                            routingTableGenerationTime: Duration,
+                            routingTableGenerationTime: Long,
                             routingTableSize: Int,
                             migrationTableSize: Int) => {
       log.info("Statistic: compiler takes " + routingTableGenerationTime + " to generate next routing table"
