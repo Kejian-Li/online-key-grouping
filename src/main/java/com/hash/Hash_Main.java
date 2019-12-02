@@ -16,8 +16,8 @@ public class Hash_Main {
     private static HashFunction murmurHash;
 
     public static void main(String[] args) {
-        String windowsFileName = "C:\\Users\\lizi\\Desktop\\thesis_workspace\\OKG_workspace\\OKG_data\\" +
-                "Zipf_Data\\Fixed_Distribution\\zipf_z_2-8.csv";
+        String windowsFileName = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\" +
+                "Zipf_Data\\Fixed_Distribution\\zipf_z_2-0.csv";
         String ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_unfixed_data.csv";
 
         String inFileName = windowsFileName;
@@ -61,6 +61,14 @@ public class Hash_Main {
         System.out.println("Average load is " + averageLoad);
         double imbalance = ((maxLoad / (double) averageLoad) - 1) * 100;
         System.out.println("HASH's imbalance is " + imbalance + "%");
+
+        int squareSum = 0;
+        for (int i = 0; i < k; i++) {
+            int square = (buckets[i] - averageLoad) * (buckets[i] - averageLoad);
+            squareSum += square;
+        }
+        double delta = Math.sqrt(squareSum / k);
+        System.out.println("Simulator: Final standard deviation is " + delta);
     }
 
     private static TwoUniversalHash initializeTwoUniversalHash() {

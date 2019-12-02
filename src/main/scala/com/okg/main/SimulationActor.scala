@@ -22,7 +22,7 @@ class SimulationActor(coordinatorActor: ActorRef,
   val k = instanceActors.size
   var loads = new Array[Int](k)
 
-  val windowsFileName = "C:\\Users\\lizi\\Desktop\\thesis_workspace\\OKG_workspace\\OKG_data\\" +
+  val windowsFileName = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\" +
     "Zipf_Data\\Fixed_Distribution\\zipf_z_2-0.csv"
   val ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_2-0.csv"
   val tupleNums = new Array[Int](s)
@@ -112,6 +112,14 @@ class SimulationActor(coordinatorActor: ActorRef,
         val imbalance: Float = ((maxLoad.toFloat / averageLoad.toFloat) - 1) * 100
         log.info(" ")
         log.info("Simulator: Final imbalance is " + imbalance + "%")
+
+        var squareSum = 0
+        for (i <- 0 to k - 1) {
+          val square = (loads(i) - averageLoad) * (loads(i) - averageLoad)
+          squareSum += square
+        }
+        val delta = math.sqrt(squareSum / k)
+        log.info("Simulator: Final standard deviation is " + delta)
         main ! CompletenessReply
       }
     }

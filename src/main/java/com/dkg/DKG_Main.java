@@ -11,8 +11,8 @@ public class DKG_Main {
 
     public static void main(String[] args) {
 
-        String windowsFileName = "C:\\Users\\lizi\\Desktop\\thesis_workspace\\OKG_workspace\\OKG_data\\" +
-                "Zipf_Data\\Fixed_Distribution\\zipf_z_3-0.csv";
+        String windowsFileName = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\" +
+                "Zipf_Data\\Fixed_Distribution\\zipf_z_2-0.csv";
         String ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_unfixed_data.csv";
 
         String inFileName = windowsFileName;
@@ -36,7 +36,7 @@ public class DKG_Main {
         };
 
 
-        int k = 10;
+        int k = 2;
 
         DKG_Storm dkg_storm = new DKG_Storm(theta, mu, learningLength, iKey);
         List<Integer> targetTasks = new ArrayList<>(k);
@@ -105,5 +105,13 @@ public class DKG_Main {
         System.out.println("Average load is " + averageLoad);
         double imbalance = ((maxLoad / (double) averageLoad) - 1) * 100;
         System.out.println("DKG's imbalance is " + imbalance + "%");
+
+        int squareSum = 0;
+        for (int i = 0; i < k; i++) {
+            int square = (buckets[i] - averageLoad) * (buckets[i] - averageLoad);
+            squareSum += square;
+        }
+        double delta = Math.sqrt(squareSum / k);
+        System.out.println("Simulator: Final standard deviation is " + delta);
     }
 }
