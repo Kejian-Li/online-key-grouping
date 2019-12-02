@@ -1,17 +1,17 @@
 package com.okg.actor
 
 import java.io.File
-import java.nio.file.Files
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import com.csvreader.CsvWriter
 import com.okg.message.communication.StartSimulation
-import com.okg.message.registration.StatisticsRegistrationAtInstances
+import com.okg.message.registration.{StatisticsRegistrationAtCompiler, StatisticsRegistrationAtInstances}
 import com.okg.message.statistics.{CompilerStatistics, InstanceStatistics}
 
 import scala.concurrent.duration.Duration
 
-class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorLogging {
+class StatisticsActor(instanceActors: Array[ActorRef],
+                      compilerActor: ActorRef) extends Actor with ActorLogging {
 
   val instanceSize = instanceActors.size
   val instanceWriters = new Array[CsvWriter](instanceSize)
@@ -51,6 +51,7 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
           instanceActor ! StatisticsRegistrationAtInstances
         }
       }
+      compilerActor ! StatisticsRegistrationAtCompiler
     }
 
     case InstanceStatistics(index, period, periodTuplesNum, totalTuplesNum) => {

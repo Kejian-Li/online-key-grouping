@@ -37,7 +37,7 @@ object Main {
             .withMailbox(my_mailbox))
     }
 
-    val statisticsActor = system.actorOf(Props(new StatisticsActor(instanceActors)))
+    val statisticsActor = system.actorOf(Props(new StatisticsActor(instanceActors, compilerActor)))
 
     val simulationActor = system.actorOf(
       Props(new SimulationActor(compilerActor, schedulerActors, instanceActors, statisticsActor))
