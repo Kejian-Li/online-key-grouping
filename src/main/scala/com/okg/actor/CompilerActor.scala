@@ -9,6 +9,7 @@ import com.okg.message.statistics.CompilerStatistics
 import com.okg.state._
 
 import scala.collection.mutable
+import scala.concurrent.duration.Duration
 
 /**
   * Actor for Compiler
@@ -91,9 +92,9 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     case WAIT_ALL -> COMPILE => {
       period += 1
       log.info("Compiler enters COMPILE " + "at period " + period)
-      val generationStart = System.currentTimeMillis()
+      val generationStart = System.nanoTime()
       nextRoutingTable = generateRoutingTable(nextStateData)
-      val generationEnd = System.currentTimeMillis()
+      val generationEnd = System.nanoTime()
       val generationTime = generationEnd - generationStart
 
       log.info("Compiler: next routing table size is: " + nextRoutingTable.size)
@@ -124,7 +125,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       })
       // send statistics
       statisticsActor ! new CompilerStatistics(period,
-        generationTime,
+        Duration.fromNanos(generationTime).toMicros,
         nextRoutingTable.size(),
         migrationTable.size())
     }

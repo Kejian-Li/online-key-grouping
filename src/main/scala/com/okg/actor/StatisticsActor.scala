@@ -15,23 +15,27 @@ class StatisticsActor(instanceActors: Array[ActorRef],
   val instanceWriters = new Array[CsvWriter](instanceSize)
   var compilerWriter: CsvWriter = null
 
-  var instanceResultDirectory: File = new File("instance_statistics_output")
+  var instancesStatisticsDirectory: File = new File("instances_statistics_output")
+  var compilerStatisticsDirectory: File = new File("compiler_statistics_output")
 
   // initialize
   override def preStart(): Unit = {
-    if (!instanceResultDirectory.exists()) {
-      instanceResultDirectory.mkdir()
+    if (!instancesStatisticsDirectory.exists()) {
+      instancesStatisticsDirectory.mkdir()
     } else {
-      val instanceFiles = instanceResultDirectory.listFiles()
+      val instanceFiles = instancesStatisticsDirectory.listFiles()
       instanceFiles.forall {
         instanceFile => instanceFile.delete()
       }
     }
     for (i <- 0 to instanceSize - 1) {
-      val instanceFileName = instanceResultDirectory.getCanonicalPath + "/instance_" + i + ".csv"
+      val instanceFileName = instancesStatisticsDirectory.getCanonicalPath + "/instance_" + i + ".csv"
       instanceWriters(i) = new CsvWriter(instanceFileName)
     }
-    val compilerFileName = "compiler_output.csv"
+    if(!compilerStatisticsDirectory.exists()) {
+      compilerStatisticsDirectory.mkdir()
+    }
+    val compilerFileName = compilerStatisticsDirectory.getCanonicalPath +  "/compiler_output.csv"
     val compilerFile = new File(compilerFileName)
     if(compilerFile.exists()) {
       compilerFile.delete()

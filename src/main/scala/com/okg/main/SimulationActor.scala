@@ -55,7 +55,7 @@ class SimulationActor(coordinatorActor: ActorRef,
     }
 
     // Simulation terminates...
-    log.info("Send simulation termination notification<><><><><><><><><><>")
+    log.info("Simulator: send simulation termination notification<><><><><><><><><><>")
     for (i <- 0 to s - 1) {
       schedulerActors(i) ! TerminateSimulation
     }
@@ -73,7 +73,7 @@ class SimulationActor(coordinatorActor: ActorRef,
 
   override def receive: Receive = {
     case StartSimulation => {
-      log.info("Simulation starts...")
+      log.info("Simulator: simulation starts...")
       startTime = System.currentTimeMillis()
       startSimulation()
     }
@@ -93,14 +93,14 @@ class SimulationActor(coordinatorActor: ActorRef,
           schedulersTotalTupleNum += tupleNums(i)
           log.info(i + "  ->  " + tupleNums(i))
         }
-        log.info("Simulator: Scheduler received " + schedulersTotalTupleNum + " tuples in total:")
+        log.info("Simulator: Schedulers received " + schedulersTotalTupleNum + " tuples in total:")
 
         log.info("Simulator: instances:")
         for (i <- 0 to k - 1) {
           instancesTotalTupleNum += loads(i)
           log.info(i + "  ->  " + loads(i))
         }
-        log.info("Simulator: instances received " + instancesTotalTupleNum + " tuples in total:")
+        log.info("Simulator: Instances received " + instancesTotalTupleNum + " tuples in total:")
 
         var maxLoad = loads(0)
         for (i <- 1 to k - 1) {
@@ -111,7 +111,7 @@ class SimulationActor(coordinatorActor: ActorRef,
         val averageLoad = instancesTotalTupleNum / k
         val imbalance: Float = ((maxLoad.toFloat / averageLoad.toFloat) - 1) * 100
         log.info(" ")
-        log.info("Final imbalance is " + imbalance + "%")
+        log.info("Simulator: Final imbalance is " + imbalance + "%")
         main ! CompletenessReply
       }
     }
