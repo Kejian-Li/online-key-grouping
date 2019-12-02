@@ -89,7 +89,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
       schedulerStateData.tupleQueue += tuple
       if (schedulerStateData.tupleQueue.size >= m) {
-        log.info("Scheduler " + index + ": " + "collects successfully")
+        log.info("Scheduler " + index + " collects successfully")
         goto(LEARN)
       } else {
         stay()
@@ -138,7 +138,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
       coordinatorActor ! learnCompleted.sketch
 
-      log.info("Scheduler " + index + " send sketch successfully")
+      log.info("Scheduler " + index + " sends sketch successfully")
 
       goto(WAIT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta),
         sketch = new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k))))

@@ -1,4 +1,4 @@
-package com.okg.message
+package com.okg.message.statistics
 
 /**
   *

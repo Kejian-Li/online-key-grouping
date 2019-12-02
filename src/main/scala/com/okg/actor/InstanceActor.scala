@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorRef, FSM}
 import com.okg.message._
 import com.okg.message.communication.{MigrationCompleted, StartSimulation, TerminateSimulation}
 import com.okg.message.registration.{CompilerRegistrationAtInstances, StatisticsRegistrationAtInstances}
+import com.okg.message.statistics.{InstanceStatistics, Load}
 import com.okg.state._
 import com.okg.tuple.Tuple
 
@@ -39,7 +40,7 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
       if (receivedPeriodBarriersNum == schedulerActorsSet.size) {
 
         log.info("Instance " + index + " received all the barriers and sends statistic of period " + periodBarrier.period)
-        statisticsActor ! new Statistics(index, data.period, receivedPeriodTuplesNum, data.tuplesNum)
+        statisticsActor ! new InstanceStatistics(index, data.period, receivedPeriodTuplesNum, data.tuplesNum)
 
         receivedPeriodTuplesNum = 0
         receivedPeriodBarriersNum = 0

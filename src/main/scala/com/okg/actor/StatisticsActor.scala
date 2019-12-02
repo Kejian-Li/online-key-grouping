@@ -4,9 +4,11 @@ import java.io.File
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import com.csvreader.CsvWriter
-import com.okg.message.Statistics
 import com.okg.message.communication.StartSimulation
 import com.okg.message.registration.StatisticsRegistrationAtInstances
+import com.okg.message.statistics.{CompilerStatistics, InstanceStatistics}
+
+import scala.concurrent.duration.Duration
 
 class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorLogging {
 
@@ -43,7 +45,7 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
       }
     }
 
-    case Statistics(index, period, periodTuplesNum, totalTuplesNum) => {
+    case InstanceStatistics(index, period, periodTuplesNum, totalTuplesNum) => {
       log.info("Statistic: instance " + index + " at " + period + " received "
         + periodTuplesNum + ", " + totalTuplesNum + " in total")
       instancesNum += 1
@@ -57,6 +59,13 @@ class StatisticsActor(instanceActors: Array[ActorRef]) extends Actor with ActorL
       record(1) = totalTuplesNum.toString
       periodWriters(index).writeRecord(record)
       periodWriters(index).flush()
+
+    }
+    case CompilerStatistics(period: Int,
+                            routingTableGenerationTime: Duration,
+                            routingTableSize: Int,
+                            migrationTableSize: Int) => {
+      
 
     }
 

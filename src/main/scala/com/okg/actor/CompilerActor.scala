@@ -4,10 +4,12 @@ import akka.actor.{Actor, ActorRef, FSM}
 import akka.japi.Option.Some
 import com.okg.message._
 import com.okg.message.communication.{MigrationCompleted, StartSimulation}
-import com.okg.message.registration.CompilerRegistrationAtInstances
+import com.okg.message.registration.{CompilerRegistrationAtInstances, StatisticsRegistrationAtCompiler}
+import com.okg.message.statistics.CompilerStatistics
 import com.okg.state._
 
 import scala.collection.mutable
+import scala.concurrent.duration.Duration
 
 /**
   * Actor for Compiler
@@ -66,6 +68,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     }
   }
 
+  var statisticsActor = ActorRef.noSender
   whenUnhandled {
     case Event(StartSimulation, compilerStateData: CompilerStateData) => {
       schedulerActorsSet.add(sender())
@@ -78,12 +81,21 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       }
       stay()
     }
+    case Event(StatisticsRegistrationAtCompiler, compilerStateData: CompilerStateData) => {
+      statisticsActor = sender()
+      stay()
+    }
   }
 
+  var period = 0
   onTransition {
     case WAIT_ALL -> COMPILE => {
-      log.info("Compiler enters COMPILE")
+      period += 1
+      log.info("Compiler enters COMPILE " + "at period " + period)
+      val generationStart = System.currentTimeMillis()
       nextRoutingTable = generateRoutingTable(nextStateData)
+      val generationEnd = System.currentTimeMillis()
+      val generationTime = generationEnd - generationStart
 
       log.info("Compiler: next routing table size is: " + nextRoutingTable.size)
       log.info("Compiler: next routing table:")
@@ -101,9 +113,9 @@ case class CompilerActor(s: Int, // number of Scheduler instances
         entry => {
           if (entry._2.before.isEmpty) {
             log.info(entry._1 + "  null  " + entry._2.after.get)
-          }else if(entry._2.after.isEmpty) {
+          } else if (entry._2.after.isEmpty) {
             log.info(entry._1 + "  " + entry._2.before.get + "  null")
-          }else {
+          } else {
             log.info(entry._1 + "  " + entry._2.before.get + "  " + entry._2.after.get)
           }
         }
@@ -111,6 +123,11 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       instanceActors.foreach(instanceActor => {
         instanceActor ! new StartMigration(instanceActors, migrationTable)
       })
+      // send statistics
+      statisticsActor ! new CompilerStatistics(period,
+        Duration.fromNanos(generationTime),
+        nextRoutingTable.size(),
+        migrationTable.size())
     }
 
     case COMPILE -> WAIT_ALL => {

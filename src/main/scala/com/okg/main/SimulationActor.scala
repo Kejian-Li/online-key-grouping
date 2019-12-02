@@ -2,8 +2,8 @@ package com.okg.main
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import com.csvreader.CsvReader
-import com.okg.message.Load
 import com.okg.message.communication.{CompletenessAsk, CompletenessReply, StartSimulation, TerminateSimulation}
+import com.okg.message.statistics.Load
 import com.okg.tuple.Tuple
 
 /**
@@ -24,7 +24,7 @@ class SimulationActor(coordinatorActor: ActorRef,
 
   val windowsFileName = "C:\\Users\\lizi\\Desktop\\thesis_workspace\\OKG_workspace\\OKG_data\\" +
     "Zipf_Data\\Fixed_Distribution\\zipf_z_2-0.csv"
-  val ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_3-0.csv"
+  val ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_2-0.csv"
   val tupleNums = new Array[Int](s)
 
   def startSimulation(): Unit = {
