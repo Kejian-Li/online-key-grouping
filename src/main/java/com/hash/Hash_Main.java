@@ -6,6 +6,8 @@ import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import com.okg.util.TwoUniversalHash;
 import org.apache.commons.math3.random.RandomDataGenerator;
+import org.apache.commons.math3.util.FastMath;
+import org.apache.commons.math3.util.MathUtils;
 
 import java.io.FileNotFoundException;
 
@@ -36,8 +38,11 @@ public class Hash_Main {
 
         int[] buckets = new int[k];
 
-        while(items != null) {
+        int tuplesNum = 0;
+        int tuplesLimitation = 200000;
+        while (items != null && tuplesNum < tuplesLimitation) {
             for (int i = 0; i < items.length; i++) {
+                tuplesNum++;
                 int item = Integer.parseInt(items[i]);
 //                int targetIndex = twoUniversalHash(item);
                 int targetIndex = murmurHash(item);
@@ -62,13 +67,15 @@ public class Hash_Main {
         double imbalance = ((maxLoad / (double) averageLoad) - 1) * 100;
         System.out.println("HASH's imbalance is " + imbalance + "%");
 
-        int squareSum = 0;
+
+        long squareSum = 0;
         for (int i = 0; i < k; i++) {
-            int square = (buckets[i] - averageLoad) * (buckets[i] - averageLoad);
+            int difference = buckets[i] - averageLoad;
+            double square = FastMath.pow((double) difference, 2);
             squareSum += square;
         }
         double delta = Math.sqrt(squareSum / k);
-        System.out.println("Simulator: Final standard deviation is " + delta);
+        System.out.println("Final standard deviation is " + delta);
     }
 
     private static TwoUniversalHash initializeTwoUniversalHash() {

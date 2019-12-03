@@ -2,6 +2,7 @@ package com.dkg;
 
 import com.csvreader.CsvReader;
 import com.okg.util.ZipfDataGenerator;
+import org.apache.commons.math3.util.FastMath;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -36,7 +37,7 @@ public class DKG_Main {
         };
 
 
-        int k = 2;
+        int k = 10;
 
         DKG_Storm dkg_storm = new DKG_Storm(theta, mu, learningLength, iKey);
         List<Integer> targetTasks = new ArrayList<>(k);
@@ -67,7 +68,7 @@ public class DKG_Main {
         items = csvItemReader.nextItem();
 
         // assign
-        int N = 20000;
+        int N = 120000;
         while (items != null && m < N) {
             for (int i = 0; i < items.length; i++) {
                 List<Object> tuple = new ArrayList<>(1);
@@ -106,12 +107,13 @@ public class DKG_Main {
         double imbalance = ((maxLoad / (double) averageLoad) - 1) * 100;
         System.out.println("DKG's imbalance is " + imbalance + "%");
 
-        int squareSum = 0;
+        long squareSum = 0;
         for (int i = 0; i < k; i++) {
-            int square = (buckets[i] - averageLoad) * (buckets[i] - averageLoad);
+            int difference = buckets[i] - averageLoad;
+            double square = FastMath.pow((double) difference, 2);
             squareSum += square;
         }
         double delta = Math.sqrt(squareSum / k);
-        System.out.println("Simulator: Final standard deviation is " + delta);
+        System.out.println("Final standard deviation is " + delta);
     }
 }
