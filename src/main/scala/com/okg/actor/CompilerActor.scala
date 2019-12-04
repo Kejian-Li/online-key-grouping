@@ -123,6 +123,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       instanceActors.foreach(instanceActor => {
         instanceActor ! new StartMigration(instanceActors, migrationTable)
       })
+
       // send statistics
       statisticsActor ! new CompilerStatistics(period,
         Duration.fromNanos(generationTime).toMicros,

@@ -13,7 +13,7 @@ public class DKG_Main {
     public static void main(String[] args) {
 
         String windowsFileName = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\" +
-                "Zipf_Data\\Fixed_Distribution\\zipf_z_2-0.csv";
+                "Zipf_Data\\Fixed_Distribution\\zipf_z_3-0.csv";
         String ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_unfixed_data.csv";
 
         String inFileName = windowsFileName;
@@ -35,7 +35,6 @@ public class DKG_Main {
                 return Integer.parseInt(values.get(0).toString());
             }
         };
-
 
         int k = 10;
 

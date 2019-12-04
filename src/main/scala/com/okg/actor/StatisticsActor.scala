@@ -41,20 +41,20 @@ class StatisticsActor(instanceActors: Array[ActorRef],
       compilerFile.delete()
     }
     compilerWriter = new CsvWriter(compilerFileName)
+
+    // registration itself
+    compilerActor ! StatisticsRegistrationAtCompiler
+    instanceActors.foreach {
+      instanceActor => {
+        instanceActor ! StatisticsRegistrationAtInstances
+      }
+    }
   }
 
   var receivedTupleSum = 0
   var instancesNum = 0
 
   override def receive: Receive = {
-    case StartSimulation => {
-      instanceActors.foreach {
-        instanceActor => {
-          instanceActor ! StatisticsRegistrationAtInstances
-        }
-      }
-      compilerActor ! StatisticsRegistrationAtCompiler
-    }
 
     case InstanceStatistics(index, period, periodTuplesNum, totalTuplesNum) => {
       log.info("Statistic: instance " + index + " received "
@@ -77,7 +77,7 @@ class StatisticsActor(instanceActors: Array[ActorRef],
                             routingTableGenerationTime: Long,
                             routingTableSize: Int,
                             migrationTableSize: Int) => {
-      log.info("Statistic: compiler takes " + routingTableGenerationTime + " to generate next routing table"
+      log.info("Statistic: compiler takes " + routingTableGenerationTime + " microseconds to generate next routing table"
         + " at period " + period + ", " + " its size is " + routingTableSize + ", " + "migration table size is "
         + migrationTableSize)
       val compilerRecord = new Array[String](3)

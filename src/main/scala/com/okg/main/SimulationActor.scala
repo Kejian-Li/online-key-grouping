@@ -16,16 +16,15 @@ import org.apache.commons.math3.util.FastMath
   */
 class SimulationActor(coordinatorActor: ActorRef,
                       schedulerActors: Array[ActorRef],
-                      instanceActors: Array[ActorRef],
-                      statisticsActor: ActorRef) extends Actor with ActorLogging {
+                      instanceActors: Array[ActorRef]) extends Actor with ActorLogging {
 
   val s = schedulerActors.size
   val k = instanceActors.size
   var loads = new Array[Int](k)
 
   val windowsFileName = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\" +
-    "Zipf_Data\\Fixed_Distribution\\zipf_z_2-0.csv"
-  val ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_2-0.csv"
+    "Zipf_Data\\Fixed_Distribution\\zipf_z_1-0.csv"
+  val ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_1-0.csv"
   val tupleNums = new Array[Int](s)
 
   def startSimulation(): Unit = {
@@ -39,14 +38,10 @@ class SimulationActor(coordinatorActor: ActorRef,
       schedulerActors(i) ! StartSimulation
     }
 
-    statisticsActor ! StartSimulation
-
     var sourceIndex = 0
-    var j = 0
-    val tupleLimitation = s * 10000 * 5
-    while (items != null && j < tupleLimitation) {
+
+    while (items != null) {
       for (i <- 0 to items.size - 1) {
-        j += 1
         schedulerActors(sourceIndex) ! new Tuple[Int](items(i).toInt)
         tupleNums(sourceIndex) += 1
 
