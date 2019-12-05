@@ -118,6 +118,7 @@ class SimulationActor(coordinatorActor: ActorRef,
         val averageLoad = instancesTotalTupleNum / k
         val imbalance: Float = ((maxLoad.toFloat / averageLoad.toFloat) - 1) * 100
         log.info("Simulator: average load of each load is " + averageLoad)
+        log.info(" ")
 
         if (receivedSchedulersFinalStatistics == s) {
           val finalAverageDelayTime = schedulersAveragePeriodDelayTime.sum / schedulerActors.size

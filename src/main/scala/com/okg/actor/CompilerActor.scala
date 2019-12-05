@@ -36,10 +36,10 @@ case class CompilerActor(s: Int, // number of Scheduler instances
   when(WAIT_ALL) {
     case Event(sketch: Sketch, compilerStateData: CompilerStateData) => {
 
-      log.info("Compiler received sketch from " + sender())
+      log.info("Compiler received sketch from Scheduler " + sketch.index)
 
       val newStateData = compilerStateData.copy(sketches = compilerStateData.sketches :+ sketch)
-      log.info("Compiler received sketch " + newStateData.sketches.size + " in total")
+      log.info("Compiler received " + newStateData.sketches.size + " sketch in total")
       if (newStateData.sketches.size == s) {
         log.info("Compiler is gonna COMPILE")
         goto(COMPILE) using (newStateData)

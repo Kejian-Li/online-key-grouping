@@ -41,7 +41,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       m,
       k,
       new SpaceSaving(epsilon, theta),
-      new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k)),
+      new Sketch(-1, mutable.Map.empty[Int, Int], new Array[Int](k)),
       new RoutingTable(mutable.Map.empty[Int, Int]),
       new TupleQueue[Tuple[Int]])
   }
@@ -124,7 +124,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     // make and send sketch
     val rawHeavyHittersMap = schedulerStateData.spaceSaving.getHeavyHitters
     putHeavyHittersIntoSketch(rawHeavyHittersMap, schedulerStateData.sketch)
-    val sketch = new Sketch(schedulerStateData.sketch.heavyHitters.clone(), schedulerStateData.sketch.buckets.clone())
+    val sketch = new Sketch(index, schedulerStateData.sketch.heavyHitters.clone(), schedulerStateData.sketch.buckets.clone())
 
     //check sketch
     var tuplesInSketch = 0
@@ -168,6 +168,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
   var terminateSimulationFromSimulation = false
   var simulatorActor: ActorRef = null
+  var tupleClear = false
   whenUnhandled {
     case Event(StartSimulation, schedulerStateData: SchedulerStateData) => {
       coordinatorActor ! StartSimulation
@@ -193,16 +194,25 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       val averageDelayTime = totalPeriodTime / totalPeriod
       simulatorActor ! new SchedulerStatistics(index, totalPeriod, averageDelayTime)
 
+      if (tupleClear) {
+        for (i <- 0 to k - 1) {
+          // send termination notification to instances and assign receiver of respond as simulatorActor
+          instanceActors(i).tell(TerminateSimulation, simulatorActor)
+        }
+        log.info("Scheduler " + index + " sends termination notification to all the InstanceActors")
+      }
+
       stay()
     }
 
     case Event(TupleQueueClear, schedulerStateData: SchedulerStateData) => {
+      tupleClear = true
       if (terminateSimulationFromSimulation) {
         for (i <- 0 to k - 1) {
           // send termination notification to instances and assign receiver of respond as simulatorActor
           instanceActors(i).tell(TerminateSimulation, simulatorActor)
         }
-        log.info("Scheduler " + index + " sends termination notification")
+        log.info("Scheduler " + index + " sends termination notification to all the InstanceActors")
       }
       stay()
     }
@@ -255,8 +265,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
 
     case _ -> LEARN => {
-      log.info("Scheduler " + index + " enters LEARN")
-      log.info("Scheduler " + index + " enters period " + period)
+      log.info("Scheduler " + index + " enters LEARN and period " + period)
       log.info("Scheduler " + index + " assigned so far " + assignedTotalTuplesNum + " tuples in total")
 
       i = 0

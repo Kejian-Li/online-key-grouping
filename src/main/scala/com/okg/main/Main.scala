@@ -10,10 +10,10 @@ object Main {
 
   def main(args: Array[String]): Unit = {
 
-    val m = 10000
+    val m = 1000
     // s should by divided exactly by the number of total tuples, for example 10^7 in our test
-    val s = 2
-    val k = 4
+    val s = 10
+    val k = 20
     val theta = 0.01
     val epsilon = theta / 2 // satisfy: theta > epsilon
 
@@ -45,21 +45,21 @@ object Main {
 
     simulationActor ! StartSimulation
 
-    implicit val timeout = akka.util.Timeout(2 minutes)
+    implicit val timeout = akka.util.Timeout(5 minutes)
     val future = simulationActor ? CompletenessAsk
 
-    future.onComplete{
+    future.onComplete {
       case scala.util.Success(value) => {
         system.log.info(" ")
         system.log.info("Main: " + value)
         system.stop(statisticsActor)
         system.stop(compilerActor)
-        instanceActors.foreach{
+        instanceActors.foreach {
           instanceActor => {
             system.stop(instanceActor)
           }
         }
-        schedulerActors.foreach{
+        schedulerActors.foreach {
           schedulerActor => {
             system.stop(schedulerActor)
           }
