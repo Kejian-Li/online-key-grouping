@@ -13,7 +13,7 @@ object Main {
     val m = 10000
     // s should by divided exactly by the number of total tuples, for example 10^7 in our test
     val s = 8
-    val k = 64
+    val k = 20
     val theta = 0.01
     val epsilon = theta / 2 // satisfy: theta > epsilon
 
@@ -37,7 +37,7 @@ object Main {
             .withMailbox(my_mailbox))
     }
 
-    val statisticsActor = system.actorOf(Props(new StatisticsActor(instanceActors, compilerActor)))
+    val statisticsActor = system.actorOf(Props(new StatisticsActor(schedulerActors, instanceActors, compilerActor)))
 
     val simulationActor = system.actorOf(
       Props(new SimulationActor(compilerActor, schedulerActors, instanceActors))

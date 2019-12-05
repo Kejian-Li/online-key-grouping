@@ -5,6 +5,8 @@ import java.util
 import akka.actor.{Actor, ActorRef, FSM}
 import com.okg.message._
 import com.okg.message.communication._
+import com.okg.message.registration.StatisticsRegistrationAtScheduler
+import com.okg.message.statistics.SchedulerStatistics
 import com.okg.state._
 import com.okg.tuple.{Tuple, TupleQueue}
 import com.okg.util.{SpaceSaving, TwoUniversalHash}
@@ -25,6 +27,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
                      instanceActors: Array[ActorRef]) extends Actor with FSM[SchedulerState, SchedulerStateData] {
 
   var hashFunction: TwoUniversalHash = null
+  var statisticsActor = ActorRef.noSender
 
   //initialize
   override def preStart(): Unit = {
@@ -85,11 +88,16 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   var assignedTotalTuplesNum = 0
   var period = 1
 
+  var periodStart: Long = 0    // LEARN
+  var periodEnd: Long = 0      // WAIT
+  var periodDelay: Long = periodEnd - periodStart   // time of LEARN + WAIT
+
   when(COLLECT) {
     case Event(tuple: Tuple[Int], schedulerStateData: SchedulerStateData) => {
       schedulerStateData.tupleQueue += tuple
       if (schedulerStateData.tupleQueue.size >= m) {
         log.info("Scheduler " + index + " collects successfully")
+        periodStart = System.nanoTime()
         goto(LEARN)
       } else {
         stay()
@@ -146,9 +154,14 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
   }
 
+  var totalPeriodTime: Long = 0
   when(WAIT) {
     case Event(startAssignment: StartAssignment, schedulerStateData: SchedulerStateData) => {
       log.info("Scheduler " + index + " received routing table, starting assignment...")
+
+      periodEnd = System.nanoTime()
+      periodDelay = periodEnd - periodStart
+      totalPeriodTime += periodDelay
       goto(ASSIGN) using (schedulerStateData.copy(routingTable = startAssignment.routingTable))
     }
   }
@@ -186,6 +199,10 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
         }
         log.info("Scheduler " + index + " sends termination notification")
       }
+      stay()
+    }
+    case Event(StatisticsRegistrationAtScheduler, schedulerStateData: SchedulerStateData) => {
+      statisticsActor = sender()
       stay()
     }
 
@@ -245,12 +262,19 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     case _ -> ASSIGN => {
       log.info("Scheduler " + index + " enters ASSIGN")
       assign(nextStateData.tupleQueue, nextStateData.routingTable)
+
       self ! AssignmentCompleted // assignment in each period is completed
     }
 
     case _ -> WAIT => {
       log.info("Scheduler " + index + " enters WAIT")
     }
+  }
+
+  override def postStop(): Unit = {
+    val totalPeriod = period
+    val averageDelayTime = totalPeriodTime / totalPeriod
+    statisticsActor ! new SchedulerStatistics(index, totalPeriod, averageDelayTime)
   }
 
 }

@@ -3,7 +3,7 @@ package com.okg.actor
 import akka.actor.{Actor, ActorRef, FSM}
 import com.okg.message._
 import com.okg.message.communication.{MigrationCompleted, StartSimulation, TerminateSimulation}
-import com.okg.message.registration.{CompilerRegistrationAtInstances, StatisticsRegistrationAtInstances}
+import com.okg.message.registration.{CompilerRegistrationAtInstance, StatisticsRegistrationAtInstance}
 import com.okg.message.statistics.{InstanceStatistics, Load}
 import com.okg.state._
 import com.okg.tuple.Tuple
@@ -70,12 +70,12 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
       schedulerActorsSet.add(sender())
       stay()
     }
-    case Event(CompilerRegistrationAtInstances, data: InstanceStateData) => {
+    case Event(CompilerRegistrationAtInstance, data: InstanceStateData) => {
       compilerActorRef = sender()
       stay()
     }
 
-    case Event(StatisticsRegistrationAtInstances, data: InstanceStateData) => {
+    case Event(StatisticsRegistrationAtInstance, data: InstanceStateData) => {
       statisticsActor = sender()
       stay()
     }
