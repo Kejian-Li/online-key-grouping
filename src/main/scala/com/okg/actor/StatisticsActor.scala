@@ -45,7 +45,7 @@ class StatisticsActor(schedulerActors: Array[ActorRef],
     if (!compilerStatisticsDirectory.exists()) {
       compilerStatisticsDirectory.mkdir()
     }
-    val compilerFileName = compilerStatisticsDirectory.getCanonicalPath + "/compiler_z=1.0_.csv"
+    val compilerFileName = compilerStatisticsDirectory.getCanonicalPath + "/compiler_output.csv"
     val compilerFile = new File(compilerFileName)
     if (compilerFile.exists()) {
       compilerFile.delete()
@@ -60,7 +60,7 @@ class StatisticsActor(schedulerActors: Array[ActorRef],
   override def receive: Receive = {
 
     case CompilerStatistics(period: Int,
-    routingTableGenerationTime: Long,
+    routingTableGenerationTime: Long,    // Microseconds
     routingTableSize: Int,
     migrationTableSize: Int) => {
       log.info("Statistic: compiler takes " + routingTableGenerationTime + " microseconds to generate next routing table"

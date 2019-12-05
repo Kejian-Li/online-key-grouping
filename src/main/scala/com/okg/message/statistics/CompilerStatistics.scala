@@ -8,6 +8,6 @@ package com.okg.message.statistics
   * @param migrationTableSize
   */
 case class CompilerStatistics(period: Int,
-                         routingTableGenerationTime: Long,
+                         routingTableGenerationTime: Long,    // Microsecond
                          routingTableSize: Int,
                          migrationTableSize: Int)
