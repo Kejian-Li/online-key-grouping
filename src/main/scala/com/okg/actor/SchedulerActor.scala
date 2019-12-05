@@ -149,7 +149,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       log.info("Scheduler " + index + " sends sketch successfully")
 
       goto(WAIT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta),
-        sketch = new Sketch(mutable.Map.empty[Int, Int], new Array[Int](k))))
+        sketch = new Sketch(-1, mutable.Map.empty[Int, Int], new Array[Int](k))))
     }
 
   }

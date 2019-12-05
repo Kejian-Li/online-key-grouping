@@ -234,7 +234,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     //      log.info(i + "  " + cumulativeBuckets(i))
     //    }
 
-    new Sketch(cumulativeHeavyHittersMap, cumulativeBuckets)
+    new Sketch(-1, cumulativeHeavyHittersMap, cumulativeBuckets)
   }
 
   // generate a new routing table
