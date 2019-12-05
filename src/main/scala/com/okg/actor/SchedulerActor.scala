@@ -167,7 +167,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   }
 
   var terminateSimulationFromSimulation = false
-  var simulatorActor: ActorRef = null
+  var simulatorActor = ActorRef.noSender
   var tupleClear = false
   whenUnhandled {
     case Event(StartSimulation, schedulerStateData: SchedulerStateData) => {
@@ -265,7 +265,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     }
 
     case _ -> LEARN => {
-      log.info("Scheduler " + index + " enters LEARN and period " + period)
+      log.info("Scheduler " + index + " enters LEARN at period " + period)
       log.info("Scheduler " + index + " assigned so far " + assignedTotalTuplesNum + " tuples in total")
 
       i = 0

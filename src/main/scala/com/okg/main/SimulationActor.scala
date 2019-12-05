@@ -26,11 +26,11 @@ class SimulationActor(coordinatorActor: ActorRef,
 
   val windowsFileName = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\" +
     "Zipf_Data\\Fixed_Distribution\\zipf_z_1-0.csv"
-  val ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_1-0.csv"
+  val ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_2-0.csv"
   val tupleNums = new Array[Int](s)
 
   def startSimulation(): Unit = {
-    val inFileName = windowsFileName
+    val inFileName = ubuntuFileName
 
     val csvItemReader = new CsvItemReader(new CsvReader(inFileName))
     var items = csvItemReader.nextItem()
@@ -107,16 +107,6 @@ class SimulationActor(coordinatorActor: ActorRef,
         }
         log.info("Simulator: Instances received " + instancesTotalTupleNum + " tuples in total")
 
-        var maxLoad = loads(0)
-        for (i <- 1 to k - 1) {
-          if (maxLoad < loads(i)) {
-            maxLoad = loads(i)
-          }
-        }
-
-        val averageLoad = instancesTotalTupleNum / k
-        val imbalance: Float = ((maxLoad.toFloat / averageLoad.toFloat) - 1) * 100
-        log.info("Simulator: average load of each load is " + averageLoad)
         log.info(" ")
 
         if (receivedSchedulersFinalStatistics == s) {
@@ -125,6 +115,16 @@ class SimulationActor(coordinatorActor: ActorRef,
           log.info("Simulator: schedulers' Average Period Delay Time is " + finalMillisecondsDelayTime + " ms")
         }
 
+        var maxLoad = loads(0)
+        for (i <- 1 to k - 1) {
+          if (maxLoad < loads(i)) {
+            maxLoad = loads(i)
+          }
+        }
+
+        val averageLoad = instancesTotalTupleNum / k
+        log.info("Simulator: average load of each load is " + averageLoad)
+        val imbalance: Float = ((maxLoad.toFloat / averageLoad.toFloat) - 1) * 100
         log.info("Simulator: Final imbalance is " + imbalance + "%")
         var squareSum = 0.0d
         for (i <- 0 to k - 1) {
@@ -132,8 +132,8 @@ class SimulationActor(coordinatorActor: ActorRef,
           val square = FastMath.pow(difference.toDouble, 2)
           squareSum += square
         }
-        val delta = math.sqrt(squareSum / k)
-        log.info("Simulator: Final standard deviation is " + delta)
+        val sigma = math.sqrt(squareSum / k)
+        log.info("Simulator: Final standard deviation is " + sigma)
         main ! CompletenessReply
       }
     }

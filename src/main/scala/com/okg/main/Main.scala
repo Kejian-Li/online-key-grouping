@@ -10,9 +10,9 @@ object Main {
 
   def main(args: Array[String]): Unit = {
 
-    val m = 1000
+    val m = 10000
     // s should by divided exactly by the number of total tuples, for example 10^7 in our test
-    val s = 10
+    val s = 8
     val k = 20
     val theta = 0.01
     val epsilon = theta / 2 // satisfy: theta > epsilon

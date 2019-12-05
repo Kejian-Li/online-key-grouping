@@ -36,11 +36,11 @@ case class CompilerActor(s: Int, // number of Scheduler instances
   when(WAIT_ALL) {
     case Event(sketch: Sketch, compilerStateData: CompilerStateData) => {
 
-      log.info("Compiler received sketch from Scheduler " + sketch.index)
+      log.info("Compiler received the sketch from Scheduler " + sketch.index)
 
       val newStateData = compilerStateData.copy(sketches = compilerStateData.sketches :+ sketch)
       if (newStateData.sketches.size == s) {
-      log.info("Compiler received all the sketches and is gonna COMPILE")
+        log.info("Compiler received all the sketches and is gonna COMPILE")
         goto(COMPILE) using (newStateData)
       } else {
         stay() using (newStateData)
@@ -53,11 +53,9 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       compilerStateData.migrationCompletedNotifications += 1
 
       if (compilerStateData.migrationCompletedNotifications == k) {
-        if (nextRoutingTable.isEmpty) { // sanity check
-          log.error("Compiler: next routing table is empty")
-        } else {
-          log.info("Compiler: new routing table size is " + nextRoutingTable.size())
-        }
+
+        log.info("Compiler: new routing table size is " + nextRoutingTable.size())
+
         goto(WAIT_ALL) using (
           new CompilerStateData(nextRoutingTable, List.empty[Sketch],
             0, historicalBuckets))

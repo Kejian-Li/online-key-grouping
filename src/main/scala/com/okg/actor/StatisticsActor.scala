@@ -6,13 +6,14 @@ import akka.actor.{Actor, ActorLogging, ActorRef}
 import com.csvreader.CsvWriter
 import com.okg.message.registration.{StatisticsRegistrationAtCompiler, StatisticsRegistrationAtInstance, StatisticsRegistrationAtScheduler}
 import com.okg.message.statistics.{CompilerStatistics, InstanceStatistics}
+import org.apache.commons.math3.util.FastMath
 
 class StatisticsActor(schedulerActors: Array[ActorRef],
                       instanceActors: Array[ActorRef],
                       compilerActor: ActorRef) extends Actor with ActorLogging {
 
   val instanceSize = instanceActors.size
-  val instanceWriters = new Array[CsvWriter](instanceSize)
+  var instanceWriter: CsvWriter = null
   var compilerWriter: CsvWriter = null
 
   var instancesStatisticsDirectory: File = new File("instances_statistics_output")
@@ -38,14 +39,13 @@ class StatisticsActor(schedulerActors: Array[ActorRef],
         instanceFile => instanceFile.delete()
       }
     }
-    for (i <- 0 to instanceSize - 1) {
-      val instanceFileName = instancesStatisticsDirectory.getCanonicalPath + "/instance_" + i + ".csv"
-      instanceWriters(i) = new CsvWriter(instanceFileName)
-    }
+    val instanceFileName = instancesStatisticsDirectory.getCanonicalPath + "/instances_output" + ".csv"
+    instanceWriter = new CsvWriter(instanceFileName)
+
     if (!compilerStatisticsDirectory.exists()) {
       compilerStatisticsDirectory.mkdir()
     }
-    val compilerFileName = compilerStatisticsDirectory.getCanonicalPath + "/compiler_z=3.0_.csv"
+    val compilerFileName = compilerStatisticsDirectory.getCanonicalPath + "/compiler_z=1.0_.csv"
     val compilerFile = new File(compilerFileName)
     if (compilerFile.exists()) {
       compilerFile.delete()
@@ -54,8 +54,8 @@ class StatisticsActor(schedulerActors: Array[ActorRef],
 
   }
 
-  var receivedTuplesSum = 0
-  var instancesNum = 0
+  var receivedInstancesEachPeriod = 0
+  var instanceBuckets = new Array[Int](instanceSize)
 
   override def receive: Receive = {
 
@@ -66,10 +66,11 @@ class StatisticsActor(schedulerActors: Array[ActorRef],
       log.info("Statistic: compiler takes " + routingTableGenerationTime + " microseconds to generate next routing table"
         + " at period " + period + ", " + " its size is " + routingTableSize + ", " + "migration table size is "
         + migrationTableSize)
-      val compilerRecord = new Array[String](3)
-      compilerRecord(0) = routingTableGenerationTime.toString
-      compilerRecord(1) = routingTableSize.toString
-      compilerRecord(2) = migrationTableSize.toString
+      val compilerRecord = new Array[String](4)
+      compilerRecord(0) = period.toString
+      compilerRecord(1) = routingTableGenerationTime.toString
+      compilerRecord(2) = routingTableSize.toString
+      compilerRecord(3) = migrationTableSize.toString
       compilerWriter.writeRecord(compilerRecord)
       compilerWriter.flush()
     }
@@ -77,29 +78,48 @@ class StatisticsActor(schedulerActors: Array[ActorRef],
     case InstanceStatistics(index, period, periodTuplesNum, totalTuplesNum) => {
       log.info("Statistic: instance " + index + " received "
         + periodTuplesNum + " at period " + period + ", " + totalTuplesNum + " in total")
-      instancesNum += 1
-      receivedTuplesSum += periodTuplesNum
-      if (instancesNum == instanceActors.length) {
-        log.info("Statistic: all the instances received " + receivedTuplesSum + " so far")
-        instancesNum = 0
+      receivedInstancesEachPeriod += 1
+
+      instanceBuckets(index) += periodTuplesNum
+      if (receivedInstancesEachPeriod == instanceSize) {
+        var receivedTuplesSum = instanceBuckets(0)
+        // imbalance
+        var maxLoad = instanceBuckets(0)
+        for (i <- 1 to instanceSize - 1) {
+          if (maxLoad < instanceBuckets(i)) {
+            maxLoad = instanceBuckets(i)
+          }
+          receivedTuplesSum += instanceBuckets(i)
+        }
+        val averageLoad = receivedTuplesSum / instanceSize
+        val imbalance: Float = ((maxLoad.toFloat / averageLoad.toFloat) - 1) * 100
+
+        // sigma
+        var squareSum = 0.0d
+        for (i <- 0 to instanceSize - 1) {
+          val difference = instanceBuckets(i) - averageLoad
+          val square = FastMath.pow(difference.toDouble, 2)
+          squareSum += square
+        }
+        val sigma = math.sqrt(squareSum / instanceSize)
+
+        val instanceRecord = new Array[String](3)
+        instanceRecord(0) = period.toString
+        instanceRecord(1) = imbalance.toString
+        instanceRecord(2) = sigma.toString
+        instanceWriter.writeRecord(instanceRecord)
+        instanceWriter.flush()
+
+        receivedInstancesEachPeriod = 0
       }
-      val instanceRecord = new Array[String](2)
-      instanceRecord(0) = period.toString
-      instanceRecord(1) = totalTuplesNum.toString
-      instanceWriters(index).writeRecord(instanceRecord)
-      instanceWriters(index).flush()
 
     }
 
   }
 
   override def postStop(): Unit = {
-    instanceWriters.foreach {
-      periodWriter => {
-        periodWriter.close()
-      }
-    }
-
+    compilerWriter.close()
+    instanceWriter.close()
   }
 
 }
