@@ -73,6 +73,7 @@ class SimulationActor(coordinatorActor: ActorRef,
   var main: ActorRef = null
 
   var receivedSchedulersFinalStatistics = 0
+
   var schedulersAveragePeriodDelayTime = new Array[Long](s)
 
   override def receive: Receive = {
@@ -112,11 +113,19 @@ class SimulationActor(coordinatorActor: ActorRef,
             maxLoad = loads(i)
           }
         }
+
+
         val averageLoad = instancesTotalTupleNum / k
         val imbalance: Float = ((maxLoad.toFloat / averageLoad.toFloat) - 1) * 100
-        log.info("Simulator: average load is " + averageLoad)
-        log.info("Simulator: Final imbalance is " + imbalance + "%")
+        log.info("Simulator: average load of each load is " + averageLoad)
 
+        if (receivedSchedulersFinalStatistics == s) {
+          val finalAverageDelayTime = schedulersAveragePeriodDelayTime.sum / schedulerActors.size
+          val finalMillisecondsDelayTime = Duration.fromNanos(finalAverageDelayTime).toMillis
+          log.info("Simulator: schedulers' Average Period Delay Time is " + finalMillisecondsDelayTime + " ms")
+        }
+
+        log.info("Simulator: Final imbalance is " + imbalance + "%")
         var squareSum = 0.0d
         for (i <- 0 to k - 1) {
           val difference = loads(i) - averageLoad
@@ -132,10 +141,6 @@ class SimulationActor(coordinatorActor: ActorRef,
     case SchedulerStatistics(index: Int, totalPeriod: Int, averagePeriodDelay: Long) => {
       schedulersAveragePeriodDelayTime(index) = averagePeriodDelay
       receivedSchedulersFinalStatistics += 1
-      if (receivedSchedulersFinalStatistics == s) {
-        val finalAverageDelayTime = schedulersAveragePeriodDelayTime.sum / schedulerActors.size
-        log.info("Simulator: schedulers' Average Period Delay Time is " + finalAverageDelayTime + "ms")
-      }
     }
 
     case CompletenessAsk => {
