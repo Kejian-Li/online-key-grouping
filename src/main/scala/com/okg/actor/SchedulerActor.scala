@@ -23,7 +23,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
                      k: Int, // number of Operator instances
                      epsilon: Double,
                      theta: Double,
-                     coordinatorActor: ActorRef,
+                     compilerActor: ActorRef,
                      instanceActors: Array[ActorRef]) extends Actor with FSM[SchedulerState, SchedulerStateData] {
 
   var hashFunction: TwoUniversalHash = null
@@ -144,7 +144,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
     case Event(learnCompleted: LearnCompleted, schedulerStateData: SchedulerStateData) => {
 
-      coordinatorActor ! learnCompleted.sketch
+      compilerActor ! learnCompleted.sketch
 
       log.info("Scheduler " + index + " sends sketch successfully")
 
@@ -171,7 +171,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   var tupleClear = false
   whenUnhandled {
     case Event(StartSimulation, schedulerStateData: SchedulerStateData) => {
-      coordinatorActor ! StartSimulation
+      compilerActor ! StartSimulation
 
       for (i <- 0 to k - 1) {
         instanceActors(i) ! StartSimulation
@@ -245,7 +245,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   when(ASSIGN) {
     case Event(AssignmentCompleted, schedulerStateData: SchedulerStateData) => {
       period += 1
-
+      log.info("Scheduler " + index + " assigns completely")
       if (schedulerStateData.tupleQueue.size >= m) {
         goto(LEARN)
       } else {

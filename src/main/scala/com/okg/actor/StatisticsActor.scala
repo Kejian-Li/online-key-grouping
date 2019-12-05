@@ -20,6 +20,16 @@ class StatisticsActor(schedulerActors: Array[ActorRef],
 
   // initialize
   override def preStart(): Unit = {
+
+    // registration itself
+    compilerActor ! StatisticsRegistrationAtCompiler
+    instanceActors.foreach {
+      instanceActor => {
+        instanceActor ! StatisticsRegistrationAtInstance
+      }
+    }
+
+    // output
     if (!instancesStatisticsDirectory.exists()) {
       instancesStatisticsDirectory.mkdir()
     } else {
@@ -41,14 +51,6 @@ class StatisticsActor(schedulerActors: Array[ActorRef],
       compilerFile.delete()
     }
     compilerWriter = new CsvWriter(compilerFileName)
-
-    // registration itself
-    compilerActor ! StatisticsRegistrationAtCompiler
-    instanceActors.foreach {
-      instanceActor => {
-        instanceActor ! StatisticsRegistrationAtInstance
-      }
-    }
 
   }
 
