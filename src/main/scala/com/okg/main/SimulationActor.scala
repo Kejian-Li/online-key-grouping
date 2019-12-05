@@ -3,9 +3,11 @@ package com.okg.main
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import com.csvreader.CsvReader
 import com.okg.message.communication.{CompletenessAsk, CompletenessReply, StartSimulation, TerminateSimulation}
-import com.okg.message.statistics.Load
+import com.okg.message.statistics.{Load, SchedulerStatistics}
 import com.okg.tuple.Tuple
 import org.apache.commons.math3.util.FastMath
+
+import scala.concurrent.duration.Duration
 
 /**
   * Simulation Actor with main simulation logic
@@ -70,6 +72,9 @@ class SimulationActor(coordinatorActor: ActorRef,
 
   var main: ActorRef = null
 
+  var receivedSchedulersFinalStatistics = 0
+  var schedulersAveragePeriodDelayTime = new Array[Long](s)
+
   override def receive: Receive = {
     case StartSimulation => {
       log.info("Simulator: simulation starts...")
@@ -115,12 +120,21 @@ class SimulationActor(coordinatorActor: ActorRef,
         var squareSum = 0.0d
         for (i <- 0 to k - 1) {
           val difference = loads(i) - averageLoad
-          val square =  FastMath.pow(difference.toDouble, 2)
+          val square = FastMath.pow(difference.toDouble, 2)
           squareSum += square
         }
         val delta = math.sqrt(squareSum / k)
         log.info("Simulator: Final standard deviation is " + delta)
         main ! CompletenessReply
+      }
+    }
+
+    case SchedulerStatistics(index: Int, totalPeriod: Int, averagePeriodDelay: Long) => {
+      schedulersAveragePeriodDelayTime(index) = averagePeriodDelay
+      receivedSchedulersFinalStatistics += 1
+      if (receivedSchedulersFinalStatistics == s) {
+        val finalAverageDelayTime = schedulersAveragePeriodDelayTime.sum / schedulerActors.size
+        log.info("Simulator: schedulers' Average Period Delay Time is " + finalAverageDelayTime + "ms")
       }
     }
 

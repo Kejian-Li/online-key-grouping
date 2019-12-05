@@ -188,6 +188,11 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       log.info("Scheduler " + index + " has " + schedulerStateData.tupleQueue.size + " unassigned tuples.........................................")
       terminateSimulationFromSimulation = true
       simulatorActor = sender()
+
+      val totalPeriod = period
+      val averageDelayTime = totalPeriodTime / totalPeriod
+      simulatorActor ! new SchedulerStatistics(index, totalPeriod, averageDelayTime)
+
       stay()
     }
 
@@ -269,12 +274,6 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     case _ -> WAIT => {
       log.info("Scheduler " + index + " enters WAIT")
     }
-  }
-
-  override def postStop(): Unit = {
-    val totalPeriod = period
-    val averageDelayTime = totalPeriodTime / totalPeriod
-    statisticsActor ! new SchedulerStatistics(index, totalPeriod, averageDelayTime)
   }
 
 }

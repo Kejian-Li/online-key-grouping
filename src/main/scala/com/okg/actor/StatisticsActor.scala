@@ -5,7 +5,7 @@ import java.io.File
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import com.csvreader.CsvWriter
 import com.okg.message.registration.{StatisticsRegistrationAtCompiler, StatisticsRegistrationAtInstance, StatisticsRegistrationAtScheduler}
-import com.okg.message.statistics.{CompilerStatistics, InstanceStatistics, SchedulerStatistics}
+import com.okg.message.statistics.{CompilerStatistics, InstanceStatistics}
 
 class StatisticsActor(schedulerActors: Array[ActorRef],
                       instanceActors: Array[ActorRef],
@@ -43,11 +43,6 @@ class StatisticsActor(schedulerActors: Array[ActorRef],
     compilerWriter = new CsvWriter(compilerFileName)
 
     // registration itself
-    schedulerActors.foreach {
-      schedulerActor => {
-        schedulerActor ! StatisticsRegistrationAtScheduler
-      }
-    }
     compilerActor ! StatisticsRegistrationAtCompiler
     instanceActors.foreach {
       instanceActor => {
@@ -60,13 +55,7 @@ class StatisticsActor(schedulerActors: Array[ActorRef],
   var receivedTuplesSum = 0
   var instancesNum = 0
 
-  var schedulerAveragePeriodDelayTime = new Array[Long](schedulerActors.size)
-
   override def receive: Receive = {
-
-    case SchedulerStatistics(index: Int, totalPeriod: Int, averagePeriodDelay: Long) => {
-      schedulerAveragePeriodDelayTime(index) = averagePeriodDelay
-    }
 
     case CompilerStatistics(period: Int,
     routingTableGenerationTime: Long,
@@ -103,8 +92,6 @@ class StatisticsActor(schedulerActors: Array[ActorRef],
   }
 
   override def postStop(): Unit = {
-    schedulerAveragePeriodDelayTime.sum / schedulerActors.size
-    log.info("Statistics: schedulers' Average Period Delay Time is " + schedulerAveragePeriodDelayTime)
     instanceWriters.foreach {
       periodWriter => {
         periodWriter.close()

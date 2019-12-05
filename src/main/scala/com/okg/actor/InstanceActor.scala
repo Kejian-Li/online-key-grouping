@@ -80,12 +80,13 @@ class InstanceActor(index: Int) extends Actor with FSM[InstanceState, InstanceSt
       stay()
     }
 
+      // from SchedulerActor
     case Event(TerminateSimulation, data: InstanceStateData) => {
 
       receivedTerminationNotification += 1
       if (receivedTerminationNotification == schedulerActorsSet.size) {
         log.info("Instance " + index + " received all the termination notifications")
-        sender() ! new Load(index, data.tuplesNum) // tell simulation actor statistics
+        sender() ! new Load(index, data.tuplesNum)  // sender() is SimulationActor
       }
       stay()
     }
