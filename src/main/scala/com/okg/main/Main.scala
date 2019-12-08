@@ -11,9 +11,9 @@ object Main {
   def main(args: Array[String]): Unit = {
 
     val m = 10000
-    // s should by divided exactly by the number of total tuples, for example 10^7 in our test
+    // (s * m) should by divided exactly by the number of total tuples, for example 10^7 in our test
     val s = 8
-    val k = 20
+    val k = 20  // k is related to whether simulation can be finished or not
     val theta = 0.01
     val epsilon = theta / 2 // satisfy: theta > epsilon
 

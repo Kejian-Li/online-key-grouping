@@ -30,7 +30,7 @@ class SimulationActor(coordinatorActor: ActorRef,
   val tupleNums = new Array[Int](s)
 
   def startSimulation(): Unit = {
-    val inFileName = ubuntuFileName
+    val inFileName = windowsFileName
 
     val csvItemReader = new CsvItemReader(new CsvReader(inFileName))
     var items = csvItemReader.nextItem()

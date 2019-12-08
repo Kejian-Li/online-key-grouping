@@ -38,6 +38,22 @@ case class CompilerActor(s: Int, // number of Scheduler instances
 
       log.info("Compiler received the sketch from Scheduler " + sketch.index)
 
+      // log sketch
+      log.info("sketch's heavy hitters are:")
+      sketch.heavyHitters.foreach {
+        entry => {
+          log.info(entry._1 + " " + entry._2)
+        }
+      }
+      log.info("sketch's buckets are:")
+      var i = 0
+      sketch.buckets.foreach {
+        bucket => {
+          log.info(i + " " + bucket)
+          i += 1
+        }
+      }
+
       val newStateData = compilerStateData.copy(sketches = compilerStateData.sketches :+ sketch)
       if (newStateData.sketches.size == s) {
         log.info("Compiler received all the sketches and is gonna COMPILE")
@@ -47,6 +63,8 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       }
     }
   }
+
+  var historicalBuckets : Array[Int] = null
 
   when(COMPILE) {
     case Event(MigrationCompleted, compilerStateData: CompilerStateData) => {
@@ -90,17 +108,10 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       period += 1
       log.info("Compiler enters COMPILE " + "at period " + period)
       val generationStart = System.nanoTime()
-      nextRoutingTable = generateRoutingTable(nextStateData)
+      nextRoutingTable = compile(nextStateData)
       val generationEnd = System.nanoTime()
       val generationTime = generationEnd - generationStart
 
-      log.info("Compiler: next routing table size is: " + nextRoutingTable.size)
-      log.info("Compiler: next routing table:")
-      nextRoutingTable.map.foreach {
-        entry => {
-          log.info(entry._1 + "  " + entry._2)
-        }
-      }
 
       val migrationTable = makeMigrationTable(nextRoutingTable)
       log.info("Compiler: make migration table successfully, its size is: " + migrationTable.size)
@@ -148,60 +159,10 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     minIndex
   }
 
-  var historicalBuckets: Array[Int] = null
 
-  // build global mapping and return routing table
-  // update historicalBuckets of CoordinatorStateData
-  def buildGlobalMappingFunction(heavyHitters: Seq[(Int, Int)], //  (key, frequency)
-                                 buckets: Array[Int],
-                                 compilerStateData: CompilerStateData) = {
-    historicalBuckets = compilerStateData.historicalBuckets.clone()
-    for (i <- 0 to k - 1) {
-      historicalBuckets.update(i, historicalBuckets(i) + buckets(i))
-    }
-
-    val heavyHittersMapping = mutable.Map.empty[Int, Int]
-    heavyHitters.foreach(
-      entry => {
-        val key = entry._1
-        val leastIndex = findLeastLoad(historicalBuckets)
-        historicalBuckets.update(leastIndex, historicalBuckets(leastIndex) + entry._2)
-        heavyHittersMapping.put(key, leastIndex)
-      }
-    )
-
-    //    log.info("Compiler: historical buckets will be: ")
-    //    for (i <- 0 to historicalBuckets.length - 1) {
-    //      log.info(i + "  " + historicalBuckets(i))
-    //    }
-
-    new RoutingTable(heavyHittersMapping)
-  }
-
-  def cumulateSketches(compilerStateData: CompilerStateData) = {
+  def aggregateSketches(compilerStateData: CompilerStateData) = {
     val cumulativeHeavyHittersMap = mutable.TreeMap.empty[Int, Int]
     val cumulativeBuckets = new Array[Int](k)
-
-    //    log.info("Compiler: " + "heavy hitters of each original sketch: ")
-    //    var i = 0
-    //    compilerStateData.sketches.foreach {
-    //      sketch => {
-    //        log.info("Compiler: sketch " + i + "'s heavy hitters of original sketch: ")
-    //        sketch.heavyHitters.foreach {
-    //          entry => {
-    //            log.info(entry._1 + "  " + entry._2)
-    //          }
-    //        }
-    //        i += 1
-    //      }
-    //    }
-
-    //    for (j <- 0 to compilerStateData.sketches.size - 1) {
-    //      log.info("Compiler: sketch " + j + "'s buckets: ")
-    //      for (i <- 0 to k - 1) {
-    //        log.info(i + "  " + compilerStateData.sketches(j).buckets(i))
-    //      }
-    //    }
 
     compilerStateData.sketches.foreach(
       sketch => {
@@ -219,34 +180,30 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       }
     )
 
-    //    log.info("Compiler: " + "cumulative heavy hitters in the original order: ")
-    //    cumulativeHeavyHittersMap.foreach {
-    //      entry => {
-    //        log.info(entry._1 + "  " + entry._2)
-    //      }
-    //    }
-    //
-    //    log.info("Compiler: cumulative buckets:")
-    //    for (i <- 0 to k - 1) {
-    //      log.info(i + "  " + cumulativeBuckets(i))
-    //    }
-
     new Sketch(-1, cumulativeHeavyHittersMap, cumulativeBuckets)
   }
 
   // generate a new routing table
-  def generateRoutingTable(compilerStateData: CompilerStateData): RoutingTable = {
-    val cumulativeSketch = cumulateSketches(compilerStateData)
+  def compile(compilerStateData: CompilerStateData): RoutingTable = {
+    val cumulativeSketch = aggregateSketches(compilerStateData)
     val descendingHeavyHittersMap = cumulativeSketch.heavyHitters.toSeq.sortWith(_._2 > _._2)
 
-    //    log.info("Compiler: " + "cumulative heavy hitters in the descending order: ")
-    //    descendingHeavyHittersMap.foreach {
-    //      entry => {
-    //        log.info(entry._1 + "  " + entry._2)
-    //      }
-    //    }
+    historicalBuckets = compilerStateData.historicalBuckets.clone()
+    for (i <- 0 to k - 1) {
+      historicalBuckets.update(i, historicalBuckets(i) + cumulativeSketch.buckets(i))
+    }
 
-    buildGlobalMappingFunction(descendingHeavyHittersMap, cumulativeSketch.buckets, compilerStateData)
+    val heavyHittersMapping = mutable.Map.empty[Int, Int]
+    descendingHeavyHittersMap.foreach(
+      entry => {
+        val key = entry._1
+        val leastIndex = findLeastLoad(historicalBuckets)
+        historicalBuckets.update(leastIndex, historicalBuckets(leastIndex) + entry._2)
+        heavyHittersMapping.put(key, leastIndex)
+      }
+    )
+
+    new RoutingTable(heavyHittersMapping)
   }
 
   // compare currentRoutingTable with nextRoutingTable to make migration table
