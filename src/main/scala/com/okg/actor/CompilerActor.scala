@@ -64,7 +64,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     }
   }
 
-  var historicalBuckets : Array[Int] = null
+  var historicalBuckets: Array[Int] = null
 
   when(COMPILE) {
     case Event(MigrationCompleted, compilerStateData: CompilerStateData) => {
@@ -107,36 +107,23 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     case WAIT_ALL -> COMPILE => {
       period += 1
       log.info("Compiler enters COMPILE " + "at period " + period)
+
       val generationStart = System.nanoTime()
       nextRoutingTable = compile(nextStateData)
       val generationEnd = System.nanoTime()
-      val generationTime = generationEnd - generationStart
-
 
       val migrationTable = makeMigrationTable(nextRoutingTable)
-      log.info("Compiler: make migration table successfully, its size is: " + migrationTable.size)
-      log.info("Compiler: next migration table:")
 
-      migrationTable.map.foreach {
-        entry => {
-          if (entry._2.before.isEmpty) {
-            log.info(entry._1 + "  null  " + entry._2.after.get)
-          } else if (entry._2.after.isEmpty) {
-            log.info(entry._1 + "  " + entry._2.before.get + "  null")
-          } else {
-            log.info(entry._1 + "  " + entry._2.before.get + "  " + entry._2.after.get)
-          }
-        }
-      }
+      log.info("Compiler: make migration table successfully, its size is: " + migrationTable.size)
+
       instanceActors.foreach(instanceActor => {
         instanceActor ! new StartMigration(instanceActors, migrationTable)
       })
 
       // send statistics
-      statisticsActor ! new CompilerStatistics(period,
-        Duration.fromNanos(generationTime).toMicros,
-        nextRoutingTable.size(),
-        migrationTable.size())
+      val generationTime = generationEnd - generationStart
+      statisticsActor ! new CompilerStatistics(period, Duration.fromNanos(generationTime).toMicros,
+        nextRoutingTable.size(), migrationTable.size())
     }
 
     case COMPILE -> WAIT_ALL => {
@@ -160,7 +147,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
   }
 
 
-  def aggregateSketches(compilerStateData: CompilerStateData) = {
+  def aggregateAndSort(compilerStateData: CompilerStateData) = {
     val cumulativeHeavyHittersMap = mutable.TreeMap.empty[Int, Int]
     val cumulativeBuckets = new Array[Int](k)
 
@@ -180,13 +167,14 @@ case class CompilerActor(s: Int, // number of Scheduler instances
       }
     )
 
+    cumulativeHeavyHittersMap.toSeq.sortWith(_._2 > _._2)
+
     new Sketch(-1, cumulativeHeavyHittersMap, cumulativeBuckets)
   }
 
   // generate a new routing table
   def compile(compilerStateData: CompilerStateData): RoutingTable = {
-    val cumulativeSketch = aggregateSketches(compilerStateData)
-    val descendingHeavyHittersMap = cumulativeSketch.heavyHitters.toSeq.sortWith(_._2 > _._2)
+    val cumulativeSketch = aggregateAndSort(compilerStateData)
 
     historicalBuckets = compilerStateData.historicalBuckets.clone()
     for (i <- 0 to k - 1) {
@@ -194,7 +182,7 @@ case class CompilerActor(s: Int, // number of Scheduler instances
     }
 
     val heavyHittersMapping = mutable.Map.empty[Int, Int]
-    descendingHeavyHittersMap.foreach(
+    cumulativeSketch.heavyHitters.foreach(
       entry => {
         val key = entry._1
         val leastIndex = findLeastLoad(historicalBuckets)
