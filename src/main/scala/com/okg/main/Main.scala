@@ -14,7 +14,7 @@ object Main {
     // (s * m) should by divided exactly by the number of total tuples, for example 10^7 in our test
     val s = 8
     val k = 20  // k is related to whether simulation can be finished or not
-    val theta = 0.01
+    val theta = 0.01    // threshold of heavy hitters
     val epsilon = theta / 2 // satisfy: theta > epsilon
 
     val system = ActorSystem()
