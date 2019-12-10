@@ -41,7 +41,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       m,
       k,
       new SpaceSaving(epsilon, theta),
-      new Sketch(-1, mutable.Map.empty[Int, Int], new Array[Int](k)),
+      new Array[Int](k),
       new RoutingTable(mutable.Map.empty[Int, Int]),
       new TupleQueue[Tuple[Int]])
   }
@@ -74,15 +74,18 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
   // from java's HashMap to Scala's mutable.Map
   // buckets subtract heavy hitters
-  def putHeavyHittersIntoSketch(rawHeavyHitters: util.HashMap[Integer, Integer], sketch: Sketch) = {
+  def makeSketch(rawHeavyHitters: util.HashMap[Integer, Integer], buckets: Array[Int]) = {
     val it = rawHeavyHitters.entrySet().iterator()
+    val heavyHitters = new mutable.HashMap[Int, Int]()
 
     while (it.hasNext) {
       val entry = it.next()
-      sketch.heavyHitters.put(entry.getKey, entry.getValue)
+      heavyHitters.put(entry.getKey, entry.getValue)
       val targetIndex = hash(entry.getKey)
-      sketch.buckets.update(targetIndex, sketch.buckets(targetIndex) - entry.getValue)
+      buckets.update(targetIndex, buckets(targetIndex) - entry.getValue)
     }
+
+    new Sketch(index, heavyHitters.clone(), buckets.clone())
   }
 
   var assignedTotalTuplesNum = 0
@@ -118,14 +121,11 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       val key = tuple.key
       schedulerStateData.spaceSaving.newSample(key)
       val targetIndex = hash(key)
-      schedulerStateData.sketch.buckets.update(targetIndex, schedulerStateData.sketch.buckets(targetIndex) + 1)
+      schedulerStateData.buckets.update(targetIndex, schedulerStateData.buckets(targetIndex) + 1)
       i += 1
     }
-    // make and send sketch
-    val rawHeavyHittersMap = schedulerStateData.spaceSaving.getHeavyHitters
-    putHeavyHittersIntoSketch(rawHeavyHittersMap, schedulerStateData.sketch)
-    val sketch = new Sketch(index, schedulerStateData.sketch.heavyHitters.clone(), schedulerStateData.sketch.buckets.clone())
-
+    // make sketch
+    val sketch = makeSketch(schedulerStateData.spaceSaving.getHeavyHitters, schedulerStateData.buckets)
     //check sketch
     var tuplesInSketch = 0
     tuplesInSketch += sketch.buckets.sum
@@ -144,12 +144,13 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
     case Event(learnCompleted: LearnCompleted, schedulerStateData: SchedulerStateData) => {
 
+      // learn successfully and send sketch
       compilerActor ! learnCompleted.sketch
 
       log.info("Scheduler " + index + " sends sketch successfully")
 
       goto(WAIT) using (schedulerStateData.copy(spaceSaving = new SpaceSaving(epsilon, theta),
-        sketch = new Sketch(-1, mutable.Map.empty[Int, Int], new Array[Int](k))))
+        buckets = new Array[Int](k)))
     }
 
   }
@@ -216,6 +217,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       }
       stay()
     }
+
     case Event(StatisticsRegistrationAtScheduler, schedulerStateData: SchedulerStateData) => {
       statisticsActor = sender()
       stay()
@@ -269,6 +271,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       log.info("Scheduler " + index + " assigned so far " + assignedTotalTuplesNum + " tuples in total")
 
       i = 0
+
       val sketch = learn(nextStateData)
       self ! new LearnCompleted(sketch)
     }

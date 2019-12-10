@@ -6,8 +6,8 @@ import com.okg.util.SpaceSaving
 
 case class SchedulerStateData(m: Int,
                               k: Int,
-                              spaceSaving: SpaceSaving,
-                              sketch: Sketch,
+                              spaceSaving: SpaceSaving,    // first data structure
+                              buckets: Array[Int],         // second data structure
                               routingTable: RoutingTable,
                               tupleQueue: TupleQueue[Tuple[Int]])
 
