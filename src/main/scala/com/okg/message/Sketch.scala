@@ -11,4 +11,6 @@ import scala.collection.mutable
   * @param heavyHitters
   * @param buckets
   */
-case class Sketch(index: Int, heavyHitters: mutable.Map[Int, Int], buckets: Array[Int]) extends ControlMessage
+case class Sketch(index: Int,
+                  heavyHitters: mutable.Map[Int, Int],
+                  buckets: Array[Int]) extends ControlMessage
