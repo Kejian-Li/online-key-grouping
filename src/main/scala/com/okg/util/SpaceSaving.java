@@ -10,15 +10,16 @@ import java.util.TreeMap;
  */
 public class SpaceSaving {
 
-    private final double phi;
+    private final double theta;
 
-    private final HashMap<Integer, Elem> l;
+    private final HashMap<Integer, Elem> list;
     private final int lSizeLimit;
 
     private final TreeMap<Integer, HashSet<Integer>> minSets;
 
     private int min = 1;
-    private double m = 0;   // number of items
+    // number of items
+    private double m = 0;
 
     private static final double DEFAULT_EPSILON = 0.05;
     private static final double DEFAULT_THETA = 0.1;
@@ -43,11 +44,11 @@ public class SpaceSaving {
      */
     public SpaceSaving(double epsilon, double theta) {
 
-        this.phi = theta;
+        this.theta = theta;
 
         this.lSizeLimit = (int) Math.ceil(1.0 / epsilon);
 
-        this.l = new HashMap<Integer, Elem>((int) Math.ceil(1 + lSizeLimit / 0.75));
+        this.list = new HashMap<Integer, Elem>((int) Math.ceil(1 + lSizeLimit / 0.75));
 
         this.minSets = new TreeMap<Integer, HashSet<Integer>>();
     }
@@ -61,15 +62,15 @@ public class SpaceSaving {
 
         m++;
 
-        if (l.containsKey(identifier)) {
-            int count = l.get(identifier).count;
+        if (list.containsKey(identifier)) {
+            int count = list.get(identifier).count;
 
             minSets.get(count).remove(identifier);
             if (minSets.get(count).isEmpty()) {
                 minSets.remove(count);
             }
 
-            l.get(identifier).count++;
+            list.get(identifier).count++;
             count++;
 
             if (!minSets.containsKey(count)) {
@@ -78,8 +79,8 @@ public class SpaceSaving {
 
             minSets.get(count).add(identifier);
 
-        } else if (l.size() < lSizeLimit) {
-            l.put(identifier, new Elem(1, 0));
+        } else if (list.size() < lSizeLimit) {
+            list.put(identifier, new Elem(1, 0));
 
             if (!minSets.containsKey(1)) {
                 minSets.put(min, new HashSet<Integer>((int) Math.ceil(1 + lSizeLimit / 0.75)));
@@ -89,16 +90,16 @@ public class SpaceSaving {
 
         } else {
             int victimKey = minSets.firstEntry().getValue().iterator().next();
-            Elem victimEntry = l.get(victimKey);
+            Elem victimEntry = list.get(victimKey);
 
-            l.remove(victimKey);
+            list.remove(victimKey);
             minSets.firstEntry().getValue().remove(victimKey);
 
             if (minSets.firstEntry().getValue().isEmpty()) {
                 minSets.remove(minSets.firstEntry().getKey());
             }
 
-            l.put(identifier, new Elem(victimEntry.count + 1, victimEntry.count));
+            list.put(identifier, new Elem(victimEntry.count + 1, victimEntry.count));
 
             if (!minSets.containsKey(victimEntry.count + 1)) {
                 minSets.put(victimEntry.count + 1, new HashSet<Integer>((int) Math.ceil(1 + lSizeLimit / 0.75)));
@@ -111,7 +112,9 @@ public class SpaceSaving {
     }
 
     private class Elem {
+        // count
         private int count;
+        // last evicted count
         private int e;
 
         public Elem(int count, int e) {
@@ -126,8 +129,8 @@ public class SpaceSaving {
      * @return true if the identifier belongs to the Heavy Hitter set.
      */
     public boolean isHeavyHitter(int identifier) {
-        Elem elem = l.get(identifier);
-        return elem.count - elem.e >= Math.ceil(phi * m);
+        Elem elem = list.get(identifier);
+        return elem.count - elem.e >= Math.ceil(theta * m);
     }
 
     /**
@@ -136,7 +139,7 @@ public class SpaceSaving {
      */
     public HashMap<Integer, Integer> getHeavyHitters() {
         HashMap<Integer, Integer> res = new HashMap<Integer, Integer>();
-        for (Entry<Integer, Elem> entry : l.entrySet()) {
+        for (Entry<Integer, Elem> entry : list.entrySet()) {
             if (isHeavyHitter(entry.getKey())) {
                 Elem elem = entry.getValue();
                 res.put(entry.getKey(), elem.count - elem.e);

@@ -11,4 +11,4 @@ import com.okg.message.{RoutingTable, Sketch}
 case class CompilerStateData(currentRoutingTable: RoutingTable,
                              sketches: List[Sketch],
                              var migrationCompletedNotifications: Int,
-                             historicalBuckets: Array[Int])
+                             historicalBuckets: Array[Int])     // data structure

@@ -24,8 +24,8 @@ class SimulationActor(coordinatorActor: ActorRef,
   val k = instanceActors.size
   var loads = new Array[Int](k)
 
-  val windowsFileName = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\" +
-    "Zipf_Data\\Fixed_Distribution\\zipf_z_1-0.csv"
+  val windowsFileName = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\Unfixed_Distribution" +
+    "\\zipf_z_unfixed_data.csv"
   val ubuntuFileName = "/home/lizi/workspace/okg_workspace/zipf_data/zipf_z_2-0.csv"
   val tupleNums = new Array[Int](s)
 
