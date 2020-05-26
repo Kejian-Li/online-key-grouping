@@ -6,7 +6,7 @@ public class Util {
 
     public static void main(String[] args) {
         int N = 10000000;
-        double theta = 0.01;
+        double theta = 0.0001;
         double z = 2.0;
         double harmonicNumber = generalizedHarmonic(N, z);
         double K = FastMath.pow(theta * harmonicNumber, (-1) / z);

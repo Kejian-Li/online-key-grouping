@@ -4,7 +4,6 @@ import java.util.List;
 
 /**
  * @author Nicolo Rivetti
- *
  */
 public interface IKey {
 
@@ -13,12 +12,12 @@ public interface IKey {
      * the key, through which the operator state is partitioned, associated with
      * each tuple of the stream
      *
-     * @param values
-     *            A list of object, ie, the representation of a tuple in Apache
-     *            Storm.
+     * @param values A list of object, ie, the representation of a tuple in Apache
+     *               Storm.
      * @return an integer representing the key, through which the operator state
-     *         is partitioned, associated with each tuple of the stream.
+     * is partitioned, associated with each tuple of the stream.
      */
-    public int get(List<Object> values);
+    int get(List<Object> values);
+
 
 }

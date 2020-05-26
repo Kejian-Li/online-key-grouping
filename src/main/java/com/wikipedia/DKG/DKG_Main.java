@@ -1,48 +1,53 @@
-package com.dkg;
+package com.wikipedia.DKG;
 
-import com.csvreader.CsvReader;
-import com.reader.CsvItemReader;
+import com.reader.WikipediaItemReader;
+import com.wikipedia.KeySelector;
 import org.apache.commons.math3.util.FastMath;
 
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.GZIPInputStream;
 
 public class DKG_Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
-        String windowsFileName = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\Unfixed_Distribution" +
-                "\\zipf_z_unfixed_data.csv";
-        String ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_unfixed_data.csv";
+        String wikipediaFilePath = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\Wikipedia_Data"
+                + "\\wiki.1191201596.gz";
 
-        String inFileName = windowsFileName;
-        CsvReader csvReader = null;
+        BufferedReader in = null;
         try {
-            csvReader = new CsvReader(inFileName);
+            InputStream rawin = new FileInputStream(wikipediaFilePath);
+            rawin = new GZIPInputStream(rawin);
+            in = new BufferedReader(new InputStreamReader(rawin));
         } catch (FileNotFoundException e) {
+            System.err.println("File not found");
             e.printStackTrace();
+            System.exit(1);
         }
-        CsvItemReader csvItemReader = new CsvItemReader(csvReader);
-        String[] items = csvItemReader.nextItem();
 
-        start(items, csvItemReader);
+        WikipediaItemReader wikipediaItemReader = new WikipediaItemReader(in);
+        String[] items = wikipediaItemReader.nextItem();
+
+        start(items, wikipediaItemReader);
 
     }
 
-    public static void start(String[] items, CsvItemReader csvItemReader) {
+    private static int k = 16;
+
+    public static void start(String[] items, WikipediaItemReader wikipediaItemReader) {
         double theta = 0.1;
         double mu = 2;
         int learningLength = 80000;
-        IKey iKey = new IKey() {
 
+        KeySelector iKey = new KeySelector() {
             @Override
-            public int get(List<Object> values) {
-                return Integer.parseInt(values.get(0).toString());
+            public String get(List<String> values) {
+                return values.get(2);  // url of wikipedia data as key
             }
         };
 
-        int k = 10;
 
         DKG_Storm dkg_storm = new DKG_Storm(theta, mu, learningLength, iKey);
         List<Integer> targetTasks = new ArrayList<>(k);
@@ -54,36 +59,36 @@ public class DKG_Main {
 
         int m = 0;
         // learn
-        int M = learningLength;
-        while (items != null && m < M) {
+
+        while (items != null && m < learningLength) {
+            ArrayList<String> tuple = new ArrayList<>();
             for (int i = 0; i < items.length; i++) {
-                List<Object> tuple = new ArrayList<>(1);
                 tuple.add(items[i]);
-                dkg_storm.chooseTasks(-1, tuple);
-                m++;
-                System.out.println("DKG learns " + m + " tuples");
             }
-            items = csvItemReader.nextItem();
+            dkg_storm.learn(tuple);
+            m++;
+            items = wikipediaItemReader.nextItem();
         }
+        System.out.println("DKG learns " + m + " tuples");
 
         int[] buckets = new int[k];
 
         m = 0;
-        csvItemReader.nextItem();
-        items = csvItemReader.nextItem();
+        wikipediaItemReader.nextItem();
+        items = wikipediaItemReader.nextItem();
 
         // assign
         int N = 120000;
         while (items != null && m < N) {
+                List<String> tuple = new ArrayList<>();
             for (int i = 0; i < items.length; i++) {
-                List<Object> tuple = new ArrayList<>(1);
                 tuple.add(items[i]);
-                List<Integer> target = dkg_storm.chooseTasks(-1, tuple);
-                int targetIndex = target.get(0);
-                buckets[targetIndex] += 1;
-                m++;
             }
-            items = csvItemReader.nextItem();
+            int targetIndex = dkg_storm.chooseTask(tuple);
+
+            buckets[targetIndex] += 1;
+            m++;
+            items = wikipediaItemReader.nextItem();
         }
 
 //        ZipfDataGenerator zipfDataGenerator = new ZipfDataGenerator();

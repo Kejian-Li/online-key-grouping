@@ -1,45 +1,48 @@
-package com.hash;
+package com.wikipedia;
 
-import com.csvreader.CsvReader;
-import com.reader.CsvItemReader;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import com.okg.util.TwoUniversalHash;
+import com.reader.WikipediaItemReader;
 import org.apache.commons.math3.random.RandomDataGenerator;
 import org.apache.commons.math3.util.FastMath;
 
-import java.io.FileNotFoundException;
+import java.io.*;
+import java.util.zip.GZIPInputStream;
 
 public class Hash_Main {
 
-    private static final int k = 10;
+    private static final int k = 64;
     private static TwoUniversalHash twoUniversalHash;
     private static HashFunction murmurHash;
 
-    public static void main(String[] args) {
-        String windowsFileName = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\Wikipedia_Data" +
-                "\\wiki.1191201596.gz";
-        String ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_unfixed_data.csv";
+    public static void main(String[] args) throws IOException {
+        String wikipediaFilePath = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\Wikipedia_Data"
+                + "\\wiki.1191201596.gz";
 
-        String inFileName = windowsFileName;
-        CsvReader csvReader = null;
+        BufferedReader in = null;
         try {
-            csvReader = new CsvReader(inFileName);
+            InputStream rawin = new FileInputStream(wikipediaFilePath);
+            rawin = new GZIPInputStream(rawin);
+            in = new BufferedReader(new InputStreamReader(rawin));
         } catch (FileNotFoundException e) {
+            System.err.println("File not found");
             e.printStackTrace();
+            System.exit(1);
         }
-        CsvItemReader csvItemReader = new CsvItemReader(csvReader);
-        String[] items = csvItemReader.nextItem();
+
+        WikipediaItemReader wikipediaItemReader = new WikipediaItemReader(in);
+        String[] items = wikipediaItemReader.nextItem();
 
         twoUniversalHash = initializeTwoUniversalHash();
 
         murmurHash = Hashing.murmur3_128(13);
 
-        start(items, csvItemReader);
+        start(items, wikipediaItemReader);
 
     }
 
-    public static void start(String[] items, CsvItemReader csvItemReader) {
+    public static void start(String[] items, WikipediaItemReader wikipediaItemReader) {
         int[] buckets = new int[k];
 
         int tuplesNum = 0;
@@ -47,12 +50,12 @@ public class Hash_Main {
         while (items != null && tuplesNum < tuplesLimitation) {
             for (int i = 0; i < items.length; i++) {
                 tuplesNum++;
-                int item = Integer.parseInt(items[i]);
+                String url = items[i];
 //                int targetIndex = twoUniversalHash(item);
-                int targetIndex = murmurHash(item);
+                int targetIndex = murmurHash(url);
                 buckets[targetIndex] += 1;
             }
-            items = csvItemReader.nextItem();
+            items = wikipediaItemReader.nextItem();
         }
 
         int loadSum = buckets[0];
@@ -96,7 +99,7 @@ public class Hash_Main {
         return twoUniversalHash.hash(key);
     }
 
-    public static int murmurHash(int key) {
-        return Math.abs(murmurHash.hashInt(key).asInt()) % k;
+    public static int murmurHash(String key) {
+        return Math.abs(murmurHash.hashBytes(key.getBytes()).asInt()) % k;
     }
 }

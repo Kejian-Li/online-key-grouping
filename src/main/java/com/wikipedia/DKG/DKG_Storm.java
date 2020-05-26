@@ -1,10 +1,11 @@
-package com.dkg;
+package com.wikipedia.DKG;
 
+
+import com.wikipedia.KeySelector;
 import org.apache.storm.generated.GlobalStreamId;
 import org.apache.storm.task.WorkerTopologyContext;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -28,7 +29,7 @@ public class DKG_Storm implements Serializable {
     private int m = 0;
     private DKG_Builder builder;
     private DKGHash hash;
-    private IKey key;
+    private KeySelector keySelector;
 
     /**
      * Implements the CustomStreamGrouping interface offered by the Apache Storm
@@ -42,7 +43,7 @@ public class DKG_Storm implements Serializable {
      *                       factor * k (number of available instances).
      * @param learningLength number of tuples that will be used to learn the key value
      *                       distribution (these tuples are discarded).
-     * @param key            An instance of an implementation of the IKey interface,
+     * @param keySelector            An instance of an implementation of the IKey interface,
      *                       returning an integer value representing the key, through which
      *                       the operator state is partitioned, associated with each tuple
      *                       of the stream.
@@ -50,13 +51,13 @@ public class DKG_Storm implements Serializable {
      *                       threshold theta and precision parameter epsilon: epsilon =
      *                       theta / epsilonFactor.
      */
-    public DKG_Storm(double theta, double factor, int learningLength, IKey key, double epsilonFactor) {
+    public DKG_Storm(double theta, double factor, int learningLength, KeySelector keySelector, double epsilonFactor) {
         super();
         this.theta = theta;
         this.factor = factor;
         this.epsilonFactor = epsilonFactor;
         this.learningLength = learningLength;
-        this.key = key;
+        this.keySelector = keySelector;
     }
 
     /**
@@ -71,18 +72,18 @@ public class DKG_Storm implements Serializable {
      *                       factor * k (number of available instances).
      * @param learningLength number of tuples that will be used to learn the key value
      *                       distribution (these tuples are discarded).
-     * @param key            An instance of an implementation of the IKey interface,
+     * @param keySelector    An instance of an implementation of the IKey interface,
      *                       returning an integer value representing the key, through which
      *                       the operator state is partitioned, associated with each tuple
      *                       of the stream.
      */
-    public DKG_Storm(double theta, double factor, int learningLength, IKey key) {
+    public DKG_Storm(double theta, double factor, int learningLength, KeySelector keySelector) {
         super();
         this.theta = theta;
         this.factor = factor;
         this.epsilonFactor = 2.0;
         this.learningLength = learningLength;
-        this.key = key;
+        this.keySelector = keySelector;
     }
 
 
@@ -98,27 +99,21 @@ public class DKG_Storm implements Serializable {
     }
 
 
-    //    @Override
-    public List<Integer> chooseTasks(int taskId, List<Object> values) {
 
-        List<Integer> ret = new ArrayList<Integer>(1);
-        if (m < learningLength) {
-            m++;
+    // learn
+    public void learn(List<String> values) {
 
-            // learn
-            this.builder.newSample(key.get(values));
-            if (m == learningLength) {
-                //build
-                this.hash = this.builder.build();
-            }
-        } else {
-            ret.add(this.targetTasks.get(this.hash.map(key.get(values))));
+        this.builder.newSample(keySelector.get(values));
+        m++;
+        if (m == learningLength) {
+            //build
+            this.hash = this.builder.build();
         }
-
-        return ret;
 
     }
 
-
+    public int chooseTask(List<String> values) {
+        return targetTasks.get(this.hash.map(keySelector.get(values)));
+    }
 
 }

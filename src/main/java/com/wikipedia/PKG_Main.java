@@ -1,35 +1,39 @@
-package com.pkg;
+package com.wikipedia;
 
-import com.csvreader.CsvReader;
-import com.reader.CsvItemReader;
+import com.pkg.PKG_Partitioner;
+import com.reader.WikipediaItemReader;
 import org.apache.commons.math3.util.FastMath;
 
-import java.io.FileNotFoundException;
+import java.io.*;
+import java.util.zip.GZIPInputStream;
 
 public class PKG_Main {
 
-    private static final int k = 4;
+    private static final int k = 64;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+        String wikipediaFilePath = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\Wikipedia_Data"
+                + "\\wiki.1191201596.gz";
 
-        String windowsFileName = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\Synthetic_Data" +
-                "\\Fixed_Zipf_distribution\\zipf_z_2-0.csv";
-        String ubuntuFileName = "/home/lizi/workspace/scala_workspace/zipf_data/zipf_z_unfixed_data.csv";
-
-        String inFileName = windowsFileName;
-        CsvReader csvReader = null;
+        BufferedReader in = null;
         try {
-            csvReader = new CsvReader(inFileName);
+            InputStream rawin = new FileInputStream(wikipediaFilePath);
+            rawin = new GZIPInputStream(rawin);
+            in = new BufferedReader(new InputStreamReader(rawin));
         } catch (FileNotFoundException e) {
+            System.err.println("File not found");
             e.printStackTrace();
+            System.exit(1);
         }
-        CsvItemReader csvItemReader = new CsvItemReader(csvReader);
-        String[] items = csvItemReader.nextItem();
 
-        start(items, csvItemReader);
+        WikipediaItemReader wikipediaItemReader = new WikipediaItemReader(in);
+        String[] items = wikipediaItemReader.nextItem();
+
+
+        start(items, wikipediaItemReader);
     }
 
-    public static void start(String[] items, CsvItemReader csvItemReader) {
+    public static void start(String[] items, WikipediaItemReader wikipediaItemReader) {
         PKG_Partitioner pkg_partitioner = new PKG_Partitioner(k);
 
         int[] buckets = new int[k];
@@ -39,12 +43,12 @@ public class PKG_Main {
         while (items != null && tuplesNum < tuplesLimitation) {
             for (int i = 0; i < items.length; i++) {
                 tuplesNum++;
-                int item = Integer.parseInt(items[i]);
+                String url = items[i];
 //                int targetIndex = twoUniversalHash(item);
-                int targetIndex = pkg_partitioner.partition(item);
+                int targetIndex = pkg_partitioner.partition(url);
                 buckets[targetIndex] += 1;
             }
-            items = csvItemReader.nextItem();
+            items = wikipediaItemReader.nextItem();
         }
 
         int loadSum = buckets[0];

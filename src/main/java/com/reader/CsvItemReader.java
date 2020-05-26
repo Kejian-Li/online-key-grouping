@@ -1,10 +1,10 @@
-package com.dkg;
+package com.reader;
 
 import com.csvreader.CsvReader;
 
 import java.io.IOException;
 
-public class CsvItemReader {
+public class CsvItemReader implements ItemReader {
 
     private CsvReader reader;
 
@@ -12,6 +12,7 @@ public class CsvItemReader {
         this.reader = reader;
     }
 
+    @Override
     public String[] nextItem() {
         try {
             if (reader.readRecord()) {
