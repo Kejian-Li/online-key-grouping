@@ -19,7 +19,7 @@ import org.apache.commons.math3.random.RandomDataGenerator
 import scala.collection.mutable
 
 class SchedulerActor(index: Int, // index of this Scheduler instance
-                     m: Int, // number of involved tuples in each period
+                     learningLength: Int, // number of involved tuples in each period
                      k: Int, // number of Operator instances
                      epsilon: Double,
                      theta: Double,
@@ -38,7 +38,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
   private def initializeSchedulerStateDate() = {
     new SchedulerStateData(
-      m,
+      learningLength,
       k,
       new SpaceSaving(epsilon, theta),
       new Array[Int](k),
@@ -99,7 +99,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
     case Event(tuple: Tuple[String], schedulerStateData: SchedulerStateData) => {
       schedulerStateData.tupleQueue += tuple
-      if (schedulerStateData.tupleQueue.size >= m) {
+      if (schedulerStateData.tupleQueue.size >= learningLength) {
         log.info("Scheduler " + index + " collects successfully")
         periodStart = System.nanoTime()
         goto(LEARN)
@@ -117,7 +117,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
     // learn
     val it = tupleQueue.iterator
-    while (i < m) {
+    while (i < learningLength) {
       val tuple = it.next() // return but don't remove
       val key = tuple.key
       schedulerStateData.spaceSaving.newSample(key)
@@ -136,7 +136,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
       }
     }
     log.info("Scheduler " + index + " learns " + tuplesInSketch)
-    assert(tuplesInSketch == m)
+    assert(tuplesInSketch == learningLength)
 
     sketch
   }
@@ -238,7 +238,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
 
   def assign(tupleQueue: TupleQueue[Tuple[String]], routingTable: RoutingTable) = {
     var x = 0
-    while (x < m) {
+    while (x < learningLength) {
       assignedTotalTuplesNum += 1
       val tuple = tupleQueue.dequeue() // return and remove first element
       assignTuple(tuple, routingTable)
@@ -251,7 +251,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
     case Event(AssignmentCompleted, schedulerStateData: SchedulerStateData) => {
       period += 1
       log.info("Scheduler " + index + " assigns completely")
-      if (schedulerStateData.tupleQueue.size >= m) {
+      if (schedulerStateData.tupleQueue.size >= learningLength) {
         goto(LEARN)
       } else {
         val collectedTuplesNum = schedulerStateData.tupleQueue.size

@@ -10,6 +10,7 @@ import com.okg.wikipedia.tuple.Tuple
 import org.apache.commons.math3.util.FastMath
 
 import scala.concurrent.duration.Duration
+import scala.util.control._
 
 /**
   * Simulation Actor with main simulation logic
@@ -36,7 +37,7 @@ class SimulationActor(coordinatorActor: ActorRef,
   var in: BufferedReader = _
 
   def startSimulation(): Unit = {
-    val wikipediaFilePath = ubuntuFileName
+    val wikipediaFilePath = windowsFileName
 
     try {
       var fileInput = new FileInputStream(wikipediaFilePath)
@@ -58,17 +59,27 @@ class SimulationActor(coordinatorActor: ActorRef,
 
     var sourceIndex = 0
 
-    while (items != null) {
+    val loop = new Breaks
+    val itemLimit = 120000
+    var itemCount = 0
+    loop.breakable {
+      while (items != null) {
+        itemCount += 1
+        if (itemCount == itemLimit) {
+          System.out.print("It has read " + itemLimit)
+          loop.break()
+        }
+        schedulerActors(sourceIndex) ! new Tuple[String](items(2)) //url of wikipedia
+        tupleNums(sourceIndex) += 1
 
-      schedulerActors(sourceIndex) ! new Tuple[String](items(2))   //url of wikipedia
-      tupleNums(sourceIndex) += 1
-
-      sourceIndex += 1
-      if (sourceIndex == s) {
-        sourceIndex = 0
+        sourceIndex += 1
+        if (sourceIndex == s) {
+          sourceIndex = 0
+        }
+        items = wikipediaItemReader.nextItem()
       }
-      items = wikipediaItemReader.nextItem()
     }
+
 
     // Simulation terminates...
     log.info("Simulator: send simulation termination notification<><><><><><><><><><>")

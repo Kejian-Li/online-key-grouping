@@ -46,7 +46,7 @@ public class Hash_Main {
         int[] buckets = new int[k];
 
         int tuplesNum = 0;
-        int tuplesLimitation = 200000;
+        int tuplesLimitation = 120000;
         while (items != null && tuplesNum < tuplesLimitation) {
             for (int i = 0; i < items.length; i++) {
                 tuplesNum++;

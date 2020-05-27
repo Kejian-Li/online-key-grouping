@@ -11,10 +11,10 @@ object WikipediaMain {
 
   def main(args: Array[String]): Unit = {
 
-    val m = 10000
+    val learningLength = 1000
     // (s * m) should by divided exactly by the number of total tuples, for example 10^7 in our test
-    val s = 8
-    val k = 20  // k is related to whether simulation can be finished or not
+    val s = 4
+    val k = 32  // k is related to whether simulation can be finished or not
     val theta = 0.01    // threshold of heavy hitters
     val epsilon = theta / 2 // satisfy: theta > epsilon
 
@@ -34,7 +34,7 @@ object WikipediaMain {
     for (i <- 0 to s - 1) {
       schedulerActors(i) =
         system.actorOf(
-          Props(new SchedulerActor(i, m, k, epsilon, theta, compilerActor, instanceActors))
+          Props(new SchedulerActor(i, learningLength, k, epsilon, theta, compilerActor, instanceActors))
             .withMailbox(my_mailbox))
     }
 
