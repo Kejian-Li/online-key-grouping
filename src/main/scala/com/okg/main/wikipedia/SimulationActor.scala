@@ -59,7 +59,7 @@ class SimulationActor(coordinatorActor: ActorRef,
 
     while (items != null) {
       for (i <- 0 to items.size - 1) {
-        schedulerActors(sourceIndex) ! new Tuple[String](items(i))
+        schedulerActors(sourceIndex) ! new Tuple[Int](items(i).toInt)
         tupleNums(sourceIndex) += 1
 
         sourceIndex += 1

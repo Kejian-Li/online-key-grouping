@@ -2,7 +2,7 @@ package com.okg.state
 
 import com.okg.message.{RoutingTable, Sketch}
 import com.okg.tuple.{Tuple, TupleQueue}
-import com.wikipedia.DKG.SpaceSaving;
+import com.okg.util.SpaceSaving
 
 case class SchedulerStateData(m: Int,
                               k: Int,

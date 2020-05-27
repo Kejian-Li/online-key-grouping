@@ -73,6 +73,7 @@ public class DKG_Builder {
 
         HashMap<String, Integer> ssMap = ss.getHeavyHitters();
 
+
         for (Map.Entry<String, Integer> entry : ssMap.entrySet()) {
             hashFunctionDistrib[hashFunction.hash(entry.getKey())] -= entry.getValue();
         }
@@ -85,9 +86,9 @@ public class DKG_Builder {
 
         // put buckets , key is number
         for (int i = 0; i < hashFunctionDistrib.length; i++) {
-            System.out.println(i + "  " + hashFunctionDistrib[i]);
             mostFrequent.put(String.valueOf(i), hashFunctionDistrib[i]);
         }
+
         GreedyMultiProcessorScheduler mps = new GreedyMultiProcessorScheduler(mostFrequent, k);
 
         ArrayList<Instance> instances = mps.run();
@@ -109,9 +110,6 @@ public class DKG_Builder {
 
         }
 
-        for (Map.Entry<Integer, Integer> entry : hashFunctionMapping.entrySet()) {
-            System.out.println(entry.getKey() + " " + entry.getValue());
-        }
 
         return new DKGHash(mostFrequentMapping, hashFunction, hashFunctionMapping);
 

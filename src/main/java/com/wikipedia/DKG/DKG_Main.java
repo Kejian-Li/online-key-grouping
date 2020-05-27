@@ -90,17 +90,7 @@ public class DKG_Main {
             m++;
             items = wikipediaItemReader.nextItem();
         }
-
-//        ZipfDataGenerator zipfDataGenerator = new ZipfDataGenerator();
-//        while(m < N) {
-//            int x = zipfDataGenerator.sample();
-//            List<Object> tuple = new ArrayList<>(1);
-//            tuple.add(x);
-//            List<Integer> target = dkg_storm.chooseTasks(-1, tuple);
-//            int targetIndex = target.get(0);
-//            buckets[targetIndex] += 1;
-//            m++;
-//        }
+        System.out.println("DKG assigns " + m + " tuples");
 
         int loadSum = buckets[0];
         int maxLoad = buckets[0];

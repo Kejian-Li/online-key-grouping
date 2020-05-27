@@ -10,8 +10,8 @@ public class GreedyMultiProcessorScheduler {
 
     public final HashMap<String, Double> partitions;
     public final ArrayList<Instance> instances;
-    public final TreeSet<String> ids;
 
+    public final ArrayList<String> keys = new ArrayList<>();
     /**
      * Instantiate a Greedy Multi-Processor Scheduler to map the given set of
      * partitions to the given number of instances.
@@ -22,8 +22,28 @@ public class GreedyMultiProcessorScheduler {
     public GreedyMultiProcessorScheduler(HashMap<String, Double> partitions, int instancesNum) {
 
         this.partitions = partitions;
-        this.ids = new TreeSet<String>(new PartitionSorter(partitions));
-        this.ids.addAll(partitions.keySet());
+
+        ArrayList<Pair> keysList = new ArrayList<>();
+        for(Map.Entry<String, Double> entry : partitions.entrySet()) {
+            keysList.add(new Pair(entry.getKey(), entry.getValue()));
+        }
+        Collections.sort(keysList, new Comparator<Pair>() {
+            @Override
+            public int compare(Pair o1, Pair o2) {
+                if(o1.load - o2.load > 0) {
+                    return -1;
+                }else if(o1.load - o2.load < 0) {
+                    return 1;
+                }else {
+                    return 0;
+                }
+            }
+        });
+
+        for (Pair pair : keysList) {
+            keys.add(pair.key);
+        }
+
 
         instances = new ArrayList<Instance>();
 
@@ -39,8 +59,9 @@ public class GreedyMultiProcessorScheduler {
      * partitions to instances.
      */
     public ArrayList<Instance> run() {
-        for (Iterator<String> iterator = ids.iterator(); iterator.hasNext(); ) {
+        for (Iterator<String> iterator = keys.iterator(); iterator.hasNext(); ) {
             String id = iterator.next();
+
             getEmptiestInstance().addLoad(id, partitions.get(id));
         }
 
@@ -61,29 +82,15 @@ public class GreedyMultiProcessorScheduler {
         return target;
     }
 
-    class PartitionSorter implements Comparator<String> {
+    private class Pair {
+        String key;
+        double load;
 
-        Map<String, Double> base;
-
-        public PartitionSorter(Map<String, Double> base) {
-            this.base = base;
-        }
-
-        @Override
-        public int compare(String a, String b) {
-            if (base.get(a) > base.get(b)) {
-                return -1;
-            } else if (base.get(a) < base.get(b)) {
-                return 1;
-            } else {
-                if (a.compareTo(b) < 0) {
-                    return -1;
-                } else if (a.compareTo(b) < 0) {
-                    return 1;
-                }
-                return 0;
-            }
+        public Pair(String key, double load) {
+            this.key = key;
+            this.load = load;
         }
     }
+
 
 }
