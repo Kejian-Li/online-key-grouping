@@ -1,13 +1,12 @@
-package com.okg.main.wikipedia
+package com.okg.wikipedia
 
 import java.io._
 import java.util.zip.GZIPInputStream
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
-import com.csvreader.CsvReader
-import com.okg.message.communication.{CompletenessAsk, CompletenessReply, StartSimulation, TerminateSimulation}
-import com.okg.message.statistics.{Load, SchedulerStatistics}
-import com.okg.tuple.Tuple
+import com.okg.wikipedia.message.communication.{CompletenessAsk, CompletenessReply, StartSimulation, TerminateSimulation}
+import com.okg.wikipedia.message.statistics.{Load, SchedulerStatistics}
+import com.okg.wikipedia.tuple.Tuple
 import org.apache.commons.math3.util.FastMath
 
 import scala.concurrent.duration.Duration
@@ -58,14 +57,13 @@ class SimulationActor(coordinatorActor: ActorRef,
     var sourceIndex = 0
 
     while (items != null) {
-      for (i <- 0 to items.size - 1) {
-        schedulerActors(sourceIndex) ! new Tuple[Int](items(i).toInt)
-        tupleNums(sourceIndex) += 1
 
-        sourceIndex += 1
-        if (sourceIndex == s) {
-          sourceIndex = 0
-        }
+      schedulerActors(sourceIndex) ! new Tuple[String](items(2))   //url of wikipedia
+      tupleNums(sourceIndex) += 1
+
+      sourceIndex += 1
+      if (sourceIndex == s) {
+        sourceIndex = 0
       }
       items = wikipediaItemReader.nextItem()
     }

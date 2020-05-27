@@ -1,4 +1,4 @@
-package com.okg.main.wikipedia
+package com.okg.wikipedia
 
 import java.io.{BufferedReader, IOException}
 

@@ -34,7 +34,7 @@ public class DKG_Main {
 
     }
 
-    private static int k = 16;
+    private static int k = 20;
 
     public static void start(String[] items, WikipediaItemReader wikipediaItemReader) {
         double theta = 0.1;

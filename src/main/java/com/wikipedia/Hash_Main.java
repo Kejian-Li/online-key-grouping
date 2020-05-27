@@ -2,7 +2,7 @@ package com.wikipedia;
 
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
-import com.okg.util.TwoUniversalHash;
+import com.util.TwoUniversalHash;
 import com.reader.WikipediaItemReader;
 import org.apache.commons.math3.random.RandomDataGenerator;
 import org.apache.commons.math3.util.FastMath;
@@ -12,7 +12,7 @@ import java.util.zip.GZIPInputStream;
 
 public class Hash_Main {
 
-    private static final int k = 64;
+    private static final int k = 50;
     private static TwoUniversalHash twoUniversalHash;
     private static HashFunction murmurHash;
 

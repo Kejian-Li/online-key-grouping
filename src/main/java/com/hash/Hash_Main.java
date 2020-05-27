@@ -1,10 +1,10 @@
 package com.hash;
 
 import com.csvreader.CsvReader;
+import com.util.TwoUniversalHash;
 import com.reader.CsvItemReader;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
-import com.okg.util.TwoUniversalHash;
 import org.apache.commons.math3.random.RandomDataGenerator;
 import org.apache.commons.math3.util.FastMath;
 
