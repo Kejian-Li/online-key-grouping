@@ -1,7 +1,7 @@
 package com.okg.wikipedia
 
 import akka.actor.{ActorRef, ActorSystem, Props}
-import com.okg.actor.{CompilerActor, InstanceActor, SchedulerActor, StatisticsActor}
+import com.okg.wikipedia.actor.{CompilerActor, InstanceActor, SchedulerActor, StatisticsActor}
 import com.okg.wikipedia.message.communication.{CompletenessAsk, StartSimulation}
 import akka.pattern.ask
 import scala.concurrent.duration._
@@ -13,8 +13,8 @@ object WikipediaMain {
 
     val m = 10000
     // (s * m) should by divided exactly by the number of total tuples, for example 10^7 in our test
-    val s = 1
-    val k = 2  // k is related to whether simulation can be finished or not
+    val s = 8
+    val k = 20  // k is related to whether simulation can be finished or not
     val theta = 0.01    // threshold of heavy hitters
     val epsilon = theta / 2 // satisfy: theta > epsilon
 

@@ -26,7 +26,9 @@ class SimulationActor(coordinatorActor: ActorRef,
   val k = instanceActors.size
   var loads = new Array[Int](k)
 
-  val windowsFileName = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\Wikipedia_Data" + "\\wiki.1191201596.gz"
+  val windowsFileName = "C:\\Users\\lizi\\Desktop\\OKG_Workspace\\OKG_data\\Wikipedia_Data\\wiki.1191201596.gz"
+
+  val ubuntuFileName = "/home/adolph/workspace/wikipedia/wiki.1191201596.gz"
 
 
   val tupleNums = new Array[Int](s)
@@ -34,7 +36,7 @@ class SimulationActor(coordinatorActor: ActorRef,
   var in: BufferedReader = _
 
   def startSimulation(): Unit = {
-    val wikipediaFilePath = windowsFileName
+    val wikipediaFilePath = ubuntuFileName
 
     try {
       var fileInput = new FileInputStream(wikipediaFilePath)

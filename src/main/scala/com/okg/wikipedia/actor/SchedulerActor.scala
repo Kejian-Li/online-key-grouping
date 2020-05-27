@@ -173,6 +173,7 @@ class SchedulerActor(index: Int, // index of this Scheduler instance
   var tupleClear = false
 
   whenUnhandled {
+
     case Event(StartSimulation, schedulerStateData: SchedulerStateData) => {
       compilerActor ! StartSimulation
 
